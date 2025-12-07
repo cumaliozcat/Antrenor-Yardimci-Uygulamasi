@@ -1,0 +1,53 @@
+
+:root {
+    --ana-siyah: #121212;      
+    --panel-siyah: #1E1E1E;    
+    --altin-sarisi: #D4AF37;   
+    --altin-parlak: #FFD700;   
+    --yazi-beyaz: #E0E0E0;     
+    --yazi-gri: #A0A0A0;       
+}
+
+body {
+    background-color: var(--ana-siyah);
+    color: var(--yazi-beyaz);
+    font-family: 'Poppins', sans-serif; 
+}
+
+
+.card {
+    background-color: var(--panel-siyah);
+    border: 1px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+}
+
+
+.btn-gold {
+    background-color: var(--altin-sarisi);
+    color: #000; 
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+    background-color: var(--altin-parlak);
+    transform: translateY(-2px); 
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+
+.custom-checkbox:checked {
+    background-color: var(--altin-sarisi);
+    border-color: var(--altin-sarisi);
+}
+
+
+.gorev-kilitli {
+    opacity: 0.6;
+    pointer-events: none; 
+    filter: grayscale(100%);
+}
