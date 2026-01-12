@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Giriş Yap - Fitness Pro</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            text-align: center;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #333;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: var(--altin-sarisi);
+            outline: none;
+        }
+        .error-msg {
+            color: #ff4d4d;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .sub-text {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card login-container">
+        <h1 style="color: var(--altin-sarisi); margin-bottom: 30px;">FITNESS PRO</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-msg">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="text-align: left; margin-bottom: 5px; color: #aaa;">Kullanıcı Adı</div>
+            {{ form.username }}
+            
+            <div style="text-align: left; margin-bottom: 5px; color: #aaa; margin-top: 15px;">Şifre</div>
+            {{ form.password }}
+
+            <button type="submit" class="btn-gold" style="width: 100%; margin-top: 30px; cursor: pointer;">
+                GİRİŞ YAP
+            </button>
+        </form>
+
+        <div class="sub-text">
+            <p>Antrenör Girişi için de bu paneli kullanabilirsiniz.</p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -28,6 +28,18 @@
 </head>
 <body>
     <div style="max-width: 1000px; margin: 50px auto; text-align: center;">
+
+        
+
+        <div style="text-align: right; margin-bottom: 20px;">
+    <a href="{% url 'profil_duzenle' %}" style="text-decoration: none; color: var(--altin-sarisi); border: 1px solid var(--altin-sarisi); padding: 8px 20px; border-radius: 5px; font-weight: bold; margin-right: 10px;">
+        👤 PROFİLİM
+    </a>
+
+    <a href="{% url 'cikis_yap' %}" style="text-decoration: none; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px 20px; border-radius: 5px; font-weight: bold;">
+        ÇIKIŞ YAP ➔
+    </a>
+</div>
         
         <div style="background: #333; color: var(--altin-sarisi); padding: 10px 20px; border-radius: 10px; display: inline-block; margin-bottom: 30px; border: 1px solid var(--altin-sarisi);">
             ⭐ YILDIZLARIN: <strong style="font-size: 1.2rem;">{{ yildiz_sayisi }}</strong>
