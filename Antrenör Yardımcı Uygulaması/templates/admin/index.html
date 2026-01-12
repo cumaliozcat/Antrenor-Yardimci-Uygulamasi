@@ -1,0 +1,50 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main">
+
+    <div class="dashboard-banner">
+        <div class="banner-text">
+            <h1>Hoş Geldin, Koç! 👋</h1>
+            <p>Bugün öğrencilerin için neler planlıyorsun?</p>
+        </div>
+        <div class="banner-stat">
+            <span>🏋️‍♂️ Fitness Pro</span>
+            <small>Yönetim Paneli</small>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a href="/admin/core/gorev/add/" class="action-card">
+            <div class="icon">📝</div>
+            <h3>Görev Ata</h3>
+            <p>Antrenman veya Beslenme</p>
+        </a>
+        
+        <a href="/admin/core/profil/add/" class="action-card">
+            <div class="icon">👤</div>
+            <h3>Öğrenci Ekle</h3>
+            <p>Yeni sporcu kaydı</p>
+        </a>
+
+        <a href="/admin/core/odul/add/" class="action-card">
+            <div class="icon">🏆</div>
+            <h3>Ödül Tanımla</h3>
+            <p>Yeni ödüller ekle</p>
+        </a>
+
+        <a href="/admin/core/kazanilanodul/" class="action-card">
+            <div class="icon">🎁</div>
+            <h3>Talep Kontrolü</h3>
+            <p>Ödül isteklerini onayla</p>
+        </a>
+    </div>
+
+    <h2 class="section-title">VERİ YÖNETİMİ</h2>
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %} ```
