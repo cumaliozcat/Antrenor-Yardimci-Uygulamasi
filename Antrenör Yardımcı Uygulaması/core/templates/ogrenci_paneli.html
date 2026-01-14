@@ -3,10 +3,9 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Fitness Pro</title>
+    <title>Öğrenci Paneli - Fitness Pro</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-       
         .row-container {
             display: flex;
             gap: 20px; 
@@ -24,29 +23,74 @@
             margin-bottom: 20px;
             font-size: 1.5rem;
         }
+        /* Davet Kutusu Stili */
+        .davet-box {
+            background: #2a2a2a; 
+            border: 1px solid var(--altin-sarisi); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 30px; 
+            text-align: left;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div style="max-width: 1000px; margin: 50px auto; text-align: center;">
-
         
-
         <div style="text-align: right; margin-bottom: 20px;">
-    <a href="{% url 'profil_duzenle' %}" style="text-decoration: none; color: var(--altin-sarisi); border: 1px solid var(--altin-sarisi); padding: 8px 20px; border-radius: 5px; font-weight: bold; margin-right: 10px;">
-        👤 PROFİLİM
-    </a>
+            <a href="{% url 'profil_duzenle' %}" style="text-decoration: none; color: var(--altin-sarisi); border: 1px solid var(--altin-sarisi); padding: 8px 20px; border-radius: 5px; font-weight: bold; margin-right: 10px;">
+                👤 PROFİLİM
+            </a>
+            <a href="{% url 'cikis_yap' %}" style="text-decoration: none; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px 20px; border-radius: 5px; font-weight: bold;">
+                ÇIKIŞ YAP ➔
+            </a>
+        </div>
 
-    <a href="{% url 'cikis_yap' %}" style="text-decoration: none; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px 20px; border-radius: 5px; font-weight: bold;">
-        ÇIKIŞ YAP ➔
-    </a>
-</div>
-        
+        {% if davetler %}
+        <div class="davet-box">
+            <h3 style="color: var(--altin-sarisi); margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                🔔 YENİ TAKIM DAVETİ!
+            </h3>
+            <p style="color: #aaa; font-size: 0.9rem;">Aşağıdaki antrenörler seni takımına davet ediyor:</p>
+            
+            {% for davet in davetler %}
+            <div style="background: #333; padding: 15px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--altin-sarisi);">
+                <div>
+                    <strong style="color: #fff; font-size: 1.1rem; display: block;">{{ davet.gonderen.user.first_name }} {{ davet.gonderen.user.last_name }}</strong>
+                    <span style="color: #aaa; font-size: 0.85rem;">Uzmanlık: {{ davet.gonderen.get_uzmanlik_alani_display }}</span>
+                </div>
+                
+                <form method="POST" style="display: flex; gap: 10px; margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="davet_id" value="{{ davet.id }}">
+                    <input type="hidden" name="davet_cevap" value="1"> 
+                    
+                    <button type="submit" name="cevap" value="red" style="background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        REDDET
+                    </button>
+                    <button type="submit" name="cevap" value="kabul" class="btn-gold" style="padding: 8px 20px; cursor: pointer;">
+                        KABUL ET
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         <div style="background: #333; color: var(--altin-sarisi); padding: 10px 20px; border-radius: 10px; display: inline-block; margin-bottom: 30px; border: 1px solid var(--altin-sarisi);">
             ⭐ YILDIZLARIN: <strong style="font-size: 1.2rem;">{{ yildiz_sayisi }}</strong>
         </div>
         
         <h1>HOŞ GELDİN {{ user.first_name|default:user.username|upper }}</h1>
-        <h1 style="color: #fff; margin-bottom: 40px;">GÜNLÜK PROGRAMIN</h1>
+        
+        {% if user.profil.antrenor %}
+            <p style="color: #aaa;">Antrenörün: <strong style="color: var(--altin-sarisi);">{{ user.profil.antrenor.user.first_name }} {{ user.profil.antrenor.user.last_name }}</strong></p>
+        {% else %}
+            <p style="color: #666; font-style: italic;">Henüz bir antrenörün yok.</p>
+        {% endif %}
+
+        <h1 style="color: #fff; margin-bottom: 40px; margin-top: 30px;">GÜNLÜK PROGRAMIN</h1>
         
         <form method="POST">
             {% csrf_token %}

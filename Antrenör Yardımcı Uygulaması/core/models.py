@@ -2,11 +2,40 @@ from django.db import models
 from django.contrib.auth.models import User
 import datetime
 
-# 1. KULLANICI PROFİLİ
+# --- 1. ANTRENÖR PROFİLİ (EN ÜSTTE OLMALI) ---
+# Profil modeli buna bağlanacağı için Python önce bunu okumalı.
+class AntrenorProfil(models.Model):
+    UZMANLIKLAR = (
+        ('FITNESS', 'Fitness & Vücut Geliştirme'),
+        ('PILATES', 'Pilates & Yoga'),
+        ('KILO_VERME', 'Kilo Verme & Diyet'),
+        ('KONDISYON', 'Atletik Performans & Kondisyon'),
+        ('REHAB', 'Fizik Tedavi & Rehabilitasyon'),
+    )
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='antrenor_profili', verbose_name="Antrenör")
+    yas = models.IntegerField(verbose_name="Yaş")
+    uzmanlik_alani = models.CharField(max_length=20, choices=UZMANLIKLAR, verbose_name="Uzmanlık Alanı")
+
+    class Meta:
+        verbose_name = "Antrenör Profili"
+        verbose_name_plural = "Antrenör Profilleri"
+
+    def __str__(self):
+        return f"Coach: {self.user.username}"
+
+
+# --- 2. ÖĞRENCİ PROFİLİ ---
+# AntrenorProfil artık yukarıda tanımlı olduğu için hata vermez.
 class Profil(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="Kullanıcı")
-    boy = models.IntegerField(help_text="Santimetre cinsinden (Örn: 180)", verbose_name="Boy (cm)")
-    kilo = models.FloatField(help_text="Kilogram cinsinden (Örn: 85.5)", verbose_name="Kilo (kg)")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil', verbose_name="Kullanıcı")
+    
+    # Burada AntrenorProfil kullanıyoruz, o yüzden AntrenorProfil yukarıda olmalıydı.
+    antrenor = models.ForeignKey(AntrenorProfil, on_delete=models.SET_NULL, null=True, blank=True, related_name='ogrenciler', verbose_name="Antrenörü")
+    
+    boy = models.IntegerField(help_text="Santimetre (Örn: 180)", verbose_name="Boy (cm)")
+    kilo = models.FloatField(help_text="Kilogram (Örn: 85.5)", verbose_name="Kilo (kg)")
+    yas = models.IntegerField(default=18, verbose_name="Yaş")
     yildiz_bakiyesi = models.IntegerField(default=0, verbose_name="Yıldız Bakiyesi")
     
     class Meta:
@@ -14,9 +43,31 @@ class Profil(models.Model):
         verbose_name_plural = "Öğrenci Profilleri"
     
     def __str__(self):
-        return f"{self.user.username} - {self.yildiz_bakiyesi} Yıldız"
+        return f"Öğrenci: {self.user.username}"
 
-# 2. GÖREVLER
+
+# --- 3. DAVET SİSTEMİ ---
+class Davet(models.Model):
+    DURUMLAR = (
+        ('BEKLIYOR', 'Bekliyor'),
+        ('KABUL', 'Kabul Edildi'),
+        ('RED', 'Reddedildi'),
+    )
+    
+    gonderen = models.ForeignKey(AntrenorProfil, on_delete=models.CASCADE, verbose_name="Antrenör")
+    alici = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gelen_davetler', verbose_name="Öğrenci")
+    durum = models.CharField(max_length=10, choices=DURUMLAR, default='BEKLIYOR', verbose_name="Durum")
+    tarih = models.DateTimeField(auto_now_add=True, verbose_name="Gönderilme Tarihi")
+
+    class Meta:
+        verbose_name = "Antrenör Daveti"
+        verbose_name_plural = "Antrenör Davetleri"
+
+    def __str__(self):
+        return f"{self.gonderen.user.username} -> {self.alici.username} ({self.durum})"
+
+
+# --- 4. GÖREVLER ---
 class Gorev(models.Model):
     TUR_SECENEKLERI = (
         ('ANTREMAN', 'Antrenman'),
@@ -37,7 +88,8 @@ class Gorev(models.Model):
     def __str__(self):
         return f"{self.baslik} - {self.ogrenci.username}"
 
-# 3. ÖDÜL SİSTEMİ
+
+# --- 5. ÖDÜL SİSTEMİ ---
 class Odul(models.Model):
     isim = models.CharField(max_length=100, verbose_name="Ödül Adı")
     bedel = models.IntegerField(verbose_name="Yıldız Bedeli")
@@ -50,7 +102,8 @@ class Odul(models.Model):
     def __str__(self):
         return self.isim
 
-# 4. KAZANILAN ÖDÜLLER
+
+# --- 6. KAZANILAN ÖDÜLLER ---
 class KazanilanOdul(models.Model):
     ogrenci = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Öğrenci")
     odul = models.ForeignKey(Odul, on_delete=models.CASCADE, verbose_name="Kazanılan Ödül")
@@ -63,3 +116,17 @@ class KazanilanOdul(models.Model):
 
     def __str__(self):
         return f"{self.ogrenci.username} -> {self.odul.isim}"
+    # --- 7. EGZERSİZ KÜTÜPHANESİ (YENİ) ---
+class Egzersiz(models.Model):
+    olusturan = models.ForeignKey(AntrenorProfil, on_delete=models.CASCADE, related_name='egzersizler', verbose_name="Antrenör")
+    isim = models.CharField(max_length=150, verbose_name="Egzersiz Adı")
+    aciklama = models.TextField(verbose_name="Nasıl Yapılır?", blank=True)
+    video_link = models.URLField(blank=True, null=True, verbose_name="Video Linki (Opsiyonel)")
+    olusturulma_tarihi = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Egzersiz"
+        verbose_name_plural = "Egzersiz Kütüphanesi"
+
+    def __str__(self):
+        return f"{self.isim} ({self.olusturan.user.username})"

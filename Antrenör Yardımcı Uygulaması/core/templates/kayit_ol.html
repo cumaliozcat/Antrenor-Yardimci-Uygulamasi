@@ -1,0 +1,245 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kayıt Ol - Fitness Pro</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <style>
+      /* Şifre Kapsayıcı ve İkon */
+      .password-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      .toggle-password {
+        position: absolute;
+        right: 15px;
+        top: 13px; /* Input padding'ine göre ayarlı */
+        cursor: pointer;
+        font-size: 1.2rem;
+        user-select: none;
+        z-index: 2;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: var(--ana-siyah);
+        margin: 0;
+      }
+      .register-container {
+        width: 100%;
+        max-width: 500px;
+        padding: 40px;
+        text-align: center;
+      }
+      .form-group {
+        text-align: left;
+        margin-bottom: 15px;
+      }
+      label {
+        color: var(--altin-sarisi);
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--altin-sarisi);
+        outline: none;
+      }
+
+      /* Gizli Alanlar İçin */
+      .hidden {
+        display: none;
+      }
+
+      /* Radyo Butonları (Rol Seçimi) */
+      .role-selector {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin-bottom: 30px;
+      }
+      .role-option {
+        flex: 1;
+        padding: 15px;
+        border: 1px solid #444;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+        background: #222;
+      }
+      .role-option:hover {
+        border-color: var(--altin-sarisi);
+      }
+      .role-option.active {
+        background: var(--altin-sarisi);
+        color: #000;
+        font-weight: bold;
+      }
+      .role-option input {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card register-container">
+      <h1 style="color: var(--altin-sarisi); margin-bottom: 10px">
+        FITNESS PRO
+      </h1>
+      <p style="color: #aaa; margin-bottom: 30px">Aramıza Katıl</p>
+
+      {% if hata %}
+      <div style="color: #ff4d4d; margin-bottom: 15px">{{ hata }}</div>
+      {% endif %}
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <div class="role-selector">
+          <label
+            class="role-option active"
+            id="btn-ogrenci"
+            onclick="rolSec('ogrenci')"
+          >
+            ÖĞRENCİ
+            <input type="radio" name="rol_secimi" value="ogrenci" checked />
+          </label>
+          <label
+            class="role-option"
+            id="btn-antrenor"
+            onclick="rolSec('antrenor')"
+          >
+            ANTRENÖR
+            <input type="radio" name="rol_secimi" value="antrenor" />
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Kullanıcı Adı</label>
+          <input type="text" name="username" required />
+        </div>
+        <div class="form-group">
+          <label>Şifre</label>
+          <div class="password-wrapper">
+            <input
+              type="password"
+              name="password"
+              id="kayit_password"
+              required
+            />
+            <span
+              class="toggle-password"
+              onclick="sifreGoster('kayit_password', this)"
+              >👁️</span
+            >
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px">
+          <div class="form-group" style="flex: 1">
+            <label>İsim</label>
+            <input type="text" name="first_name" required />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Soyisim</label>
+            <input type="text" name="last_name" required />
+          </div>
+        </div>
+
+        <div id="ogrenci-alanlari">
+          <div class="form-group">
+            <label>Yaş</label>
+            <input type="number" name="yas_ogrenci" />
+          </div>
+          <div style="display: flex; gap: 10px">
+            <div class="form-group" style="flex: 1">
+              <label>Boy (cm)</label>
+              <input type="number" name="boy" />
+            </div>
+            <div class="form-group" style="flex: 1">
+              <label>Kilo (kg)</label>
+              <input type="number" step="0.1" name="kilo" />
+            </div>
+          </div>
+        </div>
+
+        <div id="antrenor-alanlari" class="hidden">
+          <div class="form-group">
+            <label>Yaş</label>
+            <input type="number" name="yas_antrenor" />
+          </div>
+          <div class="form-group">
+            <label>Uzmanlık Alanı</label>
+            <select name="uzmanlik">
+              <option value="FITNESS">Fitness & Vücut Geliştirme</option>
+              <option value="PILATES">Pilates & Yoga</option>
+              <option value="KILO_VERME">Kilo Verme & Diyet</option>
+              <option value="KONDISYON">Atletik Performans</option>
+              <option value="REHAB">Rehabilitasyon</option>
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="btn-gold"
+          style="width: 100%; margin-top: 20px; cursor: pointer"
+        >
+          KAYIT OL
+        </button>
+      </form>
+
+      <p style="margin-top: 20px; font-size: 0.9rem">
+        Zaten hesabın var mı?
+        <a href="{% url 'giris_yap' %}" style="color: var(--altin-sarisi)"
+          >Giriş Yap</a
+        >
+      </p>
+    </div>
+
+    <script>
+      function rolSec(rol) {
+        // Buton görünümlerini değiştir
+        document
+          .querySelectorAll(".role-option")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById("btn-" + rol).classList.add("active");
+
+        // Alanları gizle/göster
+        if (rol === "ogrenci") {
+          document
+            .getElementById("ogrenci-alanlari")
+            .classList.remove("hidden");
+          document.getElementById("antrenor-alanlari").classList.add("hidden");
+        } else {
+          document.getElementById("ogrenci-alanlari").classList.add("hidden");
+          document
+            .getElementById("antrenor-alanlari")
+            .classList.remove("hidden");
+        }
+      }
+      function sifreGoster(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          icon.textContent = "🙈";
+        } else {
+          input.type = "password";
+          icon.textContent = "👁️";
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Antrenör Paneli - Fitness Pro</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <style>
+      .container {
+        max-width: 1200px;
+        margin: 30px auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+      }
+      .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .student-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      .mini-card {
+        background: #333;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #444;
+      }
+      .badge {
+        background: var(--altin-sarisi);
+        color: #000;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      style="
+        background: #1e1e1e;
+        padding: 20px;
+        border-bottom: 2px solid var(--altin-sarisi);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      "
+    >
+      <h1 style="color: var(--altin-sarisi); margin: 0">
+        COACH PANEL: {{ user.first_name|upper }}
+      </h1>
+      <a
+        href="{% url 'cikis_yap' %}"
+        style="
+          color: #ff4d4d;
+          text-decoration: none;
+          border: 1px solid #ff4d4d;
+          padding: 5px 15px;
+          border-radius: 5px;
+        "
+        >ÇIKIŞ YAP</a
+      >
+    </div>
+    <div style="text-align: center; margin-bottom: 20px">
+      <a
+        href="{% url 'egzersiz_kutuphanesi' %}"
+        class="btn-gold"
+        style="padding: 10px 30px; text-decoration: none; display: inline-block"
+      >
+        📚 EGZERSİZ KÜTÜPHANEMİ YÖNET
+      </a>
+    </div>
+
+    <div class="container">
+      <div>
+        <h2
+          style="
+            color: #fff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+          "
+        >
+          📋 TAKIMIM ({{ ogrenciler.count }} Öğrenci)
+        </h2>
+
+        <div class="student-list">
+          {% for ogrenci in ogrenciler %}
+          <div class="mini-card">
+            <h3 style="color: var(--altin-sarisi); margin: 0 0 10px 0">
+              {{ ogrenci.user.first_name }} {{ ogrenci.user.last_name }}
+            </h3>
+            <p style="color: #aaa; margin: 0">
+              K.Adı: {{ ogrenci.user.username }}
+            </p>
+            <p style="color: #aaa; margin: 5px 0">
+              Durum: {{ ogrenci.boy }}cm / {{ ogrenci.kilo }}kg
+            </p>
+
+            <button
+              class="btn-gold"
+              style="width: 100%; margin-top: 10px; font-size: 0.8rem"
+            >
+              GÖREV YÖNET
+            </button>
+          </div>
+          {% empty %}
+          <p style="color: #666">
+            Henüz takımında hiç öğrenci yok. Sağ taraftan ekle! 👉
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="padding: 20px">
+          <h3 style="color: var(--altin-sarisi); margin-top: 0">
+            🔎 YENİ ÖĞRENCİ EKLE
+          </h3>
+
+          {% if messages %} {% for message in messages %}
+          <div
+            style="
+              background: rgba(212, 175, 55, 0.2);
+              color: var(--altin-sarisi);
+              padding: 10px;
+              border-radius: 5px;
+              margin-bottom: 15px;
+            "
+          >
+            {{ message }}
+          </div>
+          {% endfor %} {% endif %}
+
+          <form method="POST" class="search-box">
+            {% csrf_token %}
+            <input
+              type="text"
+              name="ogrenci_adi"
+              placeholder="Öğrenci kullanıcı adı..."
+              value="{{ aranan_isim }}"
+              style="
+                background: #222;
+                border: 1px solid #444;
+                color: #fff;
+                padding: 10px;
+                border-radius: 5px;
+                width: 100%;
+              "
+            />
+            <button type="submit" name="arama_yap" class="btn-gold">ARA</button>
+          </form>
+
+          {% if arama_sonuclari %}
+          <div style="max-height: 400px; overflow-y: auto">
+            <p style="color: #888; font-size: 0.9rem">Sonuçlar:</p>
+            {% for sonuc in arama_sonuclari %}
+            <div
+              style="
+                background: #2a2a2a;
+                padding: 10px;
+                margin-bottom: 10px;
+                border-radius: 5px;
+                border-left: 3px solid var(--altin-sarisi);
+              "
+            >
+              <div style="font-weight: bold; color: #fff">
+                {{ sonuc.user.username }}
+              </div>
+              <div style="font-size: 0.8rem; color: #aaa">
+                {{ sonuc.user.first_name }} {{ sonuc.user.last_name }}
+              </div>
+
+              <form method="POST" style="margin-top: 10px">
+                {% csrf_token %}
+                <input
+                  type="hidden"
+                  name="hedef_user_id"
+                  value="{{ sonuc.user.id }}"
+                />
+                <button
+                  type="submit"
+                  name="davet_gonder"
+                  style="
+                    background: transparent;
+                    border: 1px solid var(--altin-sarisi);
+                    color: var(--altin-sarisi);
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    width: 100%;
+                  "
+                >
+                  DAVET GÖNDER 📩
+                </button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% elif aranan_isim %}
+          <p style="color: #ff4d4d">
+            Böyle bir öğrenci bulunamadı veya zaten bir antrenörü var.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

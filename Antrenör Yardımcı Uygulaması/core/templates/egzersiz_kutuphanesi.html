@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Egzersiz Kütüphanesi</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <style>
+      .layout {
+        max-width: 1200px;
+        margin: 30px auto;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 30px;
+      }
+      .form-box {
+        background: #222;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #444;
+        position: sticky;
+        top: 20px;
+      }
+      .list-box {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+      }
+      .exercise-card {
+        background: #333;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid var(--altin-sarisi);
+      }
+      .actions a {
+        font-size: 0.8rem;
+        margin-right: 10px;
+        text-decoration: none;
+      }
+      .form-input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #333;
+        border: 1px solid #555;
+        color: white;
+        border-radius: 5px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      style="
+        background: #1e1e1e;
+        padding: 20px;
+        border-bottom: 2px solid var(--altin-sarisi);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      "
+    >
+      <h2 style="color: var(--altin-sarisi); margin: 0">
+        📚 EGZERSİZ KÜTÜPHANEM
+      </h2>
+      <a
+        href="{% url 'antrenor_paneli' %}"
+        style="
+          color: #fff;
+          text-decoration: none;
+          border: 1px solid #fff;
+          padding: 5px 15px;
+          border-radius: 5px;
+        "
+        >⬅️ PANELE DÖN</a
+      >
+    </div>
+
+    <div class="layout">
+      <div class="form-box">
+        <h3 style="color: #fff; margin-top: 0">+ Yeni Hareket Ekle</h3>
+        <form method="POST">
+          {% csrf_token %}
+
+          <label style="color: #aaa; font-size: 0.9rem">Egzersiz Adı</label>
+          {{ form.isim }}
+
+          <label style="color: #aaa; font-size: 0.9rem"
+            >Açıklama / İpuçları</label
+          >
+          {{ form.aciklama }}
+
+          <label style="color: #aaa; font-size: 0.9rem"
+            >Video Linki (Opsiyonel)</label
+          >
+          {{ form.video_link }}
+
+          <button
+            type="submit"
+            class="btn-gold"
+            style="width: 100%; margin-top: 10px"
+          >
+            KÜTÜPHANEYE KAYDET
+          </button>
+        </form>
+      </div>
+
+      <div>
+        {% if messages %} {% for message in messages %}
+        <div
+          style="
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--altin-sarisi);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+          "
+        >
+          {{ message }}
+        </div>
+        {% endfor %} {% endif %}
+
+        <div class="list-box">
+          {% for hareket in egzersizler %}
+          <div class="exercise-card">
+            <h3 style="color: #fff; margin: 0 0 5px 0">{{ hareket.isim }}</h3>
+            <p
+              style="
+                color: #aaa;
+                font-size: 0.9rem;
+                height: 60px;
+                overflow: hidden;
+              "
+            >
+              {{ hareket.aciklama|truncatechars:80 }}
+            </p>
+
+            <div
+              class="actions"
+              style="
+                margin-top: 10px;
+                border-top: 1px solid #444;
+                padding-top: 10px;
+              "
+            >
+              <a
+                href="{% url 'egzersiz_duzenle' hareket.id %}"
+                style="color: var(--altin-sarisi)"
+                >✏️ Düzenle</a
+              >
+              <a
+                href="{% url 'egzersiz_sil' hareket.id %}"
+                onclick="return confirm('Bu egzersizi silmek istediğine emin misin?')"
+                style="color: #ff4d4d"
+                >🗑️ Sil</a
+              >
+            </div>
+          </div>
+          {% empty %}
+          <p style="color: #666; grid-column: 1/-1">
+            Henüz eklenmiş bir egzersiz yok. Yandaki formu kullan!
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
