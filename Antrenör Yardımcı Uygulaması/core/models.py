@@ -73,20 +73,26 @@ class Gorev(models.Model):
         ('ANTREMAN', 'Antrenman'),
         ('BESLENME', 'Beslenme'),
     )
+    DURUM_SECENEKLERI = (
+        ('ATANDI', 'Atandı (Yapılmayı Bekliyor)'),
+        ('ONAY_BEKLIYOR', 'Öğrenci Bitirdi (Hoca Onayı Bekliyor)'),
+        ('TAMAMLANDI', 'Onaylandı ve Bitti'),
+    )
     
     ogrenci = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gorevler', verbose_name="Öğrenci")
     tarih = models.DateField(default=datetime.date.today, verbose_name="Tarih")
     baslik = models.CharField(max_length=200, verbose_name="Başlık")
     aciklama = models.TextField(verbose_name="Açıklama")
     tur = models.CharField(max_length=10, choices=TUR_SECENEKLERI, verbose_name="Tür")
-    yapildi_mi = models.BooleanField(default=False, verbose_name="Tamamlandı mı?")
+    durum = models.CharField(max_length=15, choices=DURUM_SECENEKLERI, default='ATANDI', verbose_name="Durum")
+    yapildi_mi = models.BooleanField(default=False, verbose_name="Genel Tamamlanma") 
 
     class Meta:
         verbose_name = "Görev"
         verbose_name_plural = "Görev Listesi"
 
     def __str__(self):
-        return f"{self.baslik} - {self.ogrenci.username}"
+        return f"{self.baslik} - {self.ogrenci.username} ({self.durum})"
 
 
 # --- 5. ÖDÜL SİSTEMİ ---
@@ -130,3 +136,29 @@ class Egzersiz(models.Model):
 
     def __str__(self):
         return f"{self.isim} ({self.olusturan.user.username})"
+    # --- 8. ANTRENMAN DETAYLARI (YENİ) ---
+class AntrenmanHareket(models.Model):   
+    gorev = models.ForeignKey(Gorev, on_delete=models.CASCADE, related_name='hareketler')
+    egzersiz = models.ForeignKey('Egzersiz', on_delete=models.CASCADE)
+    set_sayisi = models.CharField(max_length=50, verbose_name="Set")
+    tekrar_sayisi = models.CharField(max_length=50, verbose_name="Tekrar")
+    yapildi_mi = models.BooleanField(default=False, verbose_name="Yapıldı")
+
+    def __str__(self):
+        return f"{self.egzersiz.isim} - {self.gorev.baslik}"
+    
+    # --- 9. MESAJLAŞMA SİSTEMİ  ---
+class Mesaj(models.Model):
+    gonderen = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gonderilen_mesajlar')
+    alici = models.ForeignKey(User, on_delete=models.CASCADE, related_name='alinan_mesajlar')
+    icerik = models.TextField(verbose_name="Mesaj İçeriği")
+    tarih = models.DateTimeField(auto_now_add=True)
+    okundu_mu = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['tarih'] 
+        verbose_name = "Mesaj"
+        verbose_name_plural = "Mesajlar"
+
+    def __str__(self):
+        return f"{self.gonderen} -> {self.alici}: {self.icerik[:20]}"

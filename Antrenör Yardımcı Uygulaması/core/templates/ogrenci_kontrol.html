@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Günlük Rapor İncele</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body { background-color: var(--ana-siyah); color: #fff; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 40px 20px; box-sizing: border-box; }
+        .control-card { width: 100%; max-width: 800px; background: #1e1e1e; border-radius: 15px; padding: 30px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .section-box { background: #252525; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #333; }
+        .done { color: #4cd137; font-weight: bold; background: rgba(76, 209, 55, 0.1); padding: 2px 8px; border-radius: 4px; }
+        .missed { color: #ff4d4d; font-weight: bold; background: rgba(255, 77, 77, 0.1); padding: 2px 8px; border-radius: 4px; }
+        select { width: 100%; padding: 15px; background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem; margin-bottom: 20px; outline: none; }
+        .section-title { color: var(--altin-sarisi); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; display: flex; align-items: center; gap: 10px;}
+    </style>
+</head>
+<body>
+
+    <div class="control-card">
+        <h2 style="text-align: center; margin-top: 0; margin-bottom: 5px;">GÜNLÜK RAPOR</h2>
+        <h3 style="text-align: center; color: var(--altin-sarisi); font-weight: normal; margin-top: 0;">{{ ogrenci.first_name }} {{ ogrenci.last_name }}</h3>
+        <p style="text-align: center; color: #666; font-size: 0.9rem;">{{ tarih }}</p>
+
+        {% if antrenman %}
+        <div class="section-box">
+            <h3 class="section-title">🏋️ {{ antrenman.baslik }}</h3>
+            
+            {% if antrenman.durum == 'ATANDI' %}
+                <p style="color: #ff4d4d; font-style: italic;">Bu bölüm için henüz rapor gönderilmemiş.</p>
+            {% else %}
+                {% for hareket in antrenman.hareketler.all %}
+                <div class="stat-row">
+                    <span>
+                        <span style="color: #fff; font-weight: bold;">{{ hareket.egzersiz.isim }}</span>
+                        <br>
+                        <span style="font-size: 0.8rem; color: #888;">Hedef: {{ hareket.set_sayisi }} x {{ hareket.tekrar_sayisi }}</span>
+                    </span>
+                    
+                    {% if hareket.yapildi_mi %}
+                        <span class="done">✅ YAPILDI</span>
+                    {% else %}
+                        <span class="missed">❌ YAPILMADI</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if beslenme %}
+        <div class="section-box">
+            <h3 class="section-title">🍎 {{ beslenme.baslik }}</h3>
+            
+            {% if beslenme.durum == 'ATANDI' %}
+                <p style="color: #ff4d4d; font-style: italic;">Bu bölüm için henüz rapor gönderilmemiş.</p>
+            {% else %}
+                <p style="font-style: italic; color: #ccc; background: #333; padding: 15px; border-radius: 5px; margin-top: 5px;">
+                    "{{ beslenme.aciklama }}"
+                </p>
+                <div class="stat-row" style="border: none;">
+                    <span>Programa Uyuldu mu?</span>
+                    {% if beslenme.yapildi_mi %}
+                        <span class="done">✅ EVET</span>
+                    {% else %}
+                        <span class="missed">❌ HAYIR</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="background: #222; padding: 20px; border-radius: 10px; border: 1px dashed var(--altin-sarisi);">
+                <label style="display: block; margin-bottom: 10px; color: var(--altin-sarisi); font-weight: bold;">Genel Performans Puanı (Yıldız):</label>
+                <select name="yildiz_miktari">
+                    <option value="1">⭐ 1 Yıldız (Katılım)</option>
+                    <option value="2">⭐⭐ 2 Yıldız (İdare Eder)</option>
+                    <option value="3">⭐⭐⭐ 3 Yıldız (İyi)</option>
+                    <option value="4">⭐⭐⭐⭐ 4 Yıldız (Çok İyi)</option>
+                    <option value="5" selected>⭐⭐⭐⭐⭐ 5 Yıldız (Mükemmel!)</option>
+                </select>
+
+                <div style="display: flex; gap: 15px;">
+                    <a href="{% url 'antrenor_paneli' %}" style="flex: 1; text-align: center; padding: 15px; background: #333; color: #fff; text-decoration: none; border-radius: 5px; border: 1px solid #444; transition: 0.3s;">
+                        İPTAL
+                    </a>
+                    <button type="submit" class="btn-gold" style="flex: 2; font-size: 1rem; cursor: pointer;">
+                        RAPORU ONAYLA VE KAPAT 🚀
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

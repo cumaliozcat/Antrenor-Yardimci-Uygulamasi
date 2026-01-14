@@ -1,0 +1,328 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Öğrenci Yönet</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <style>
+      body {
+        background-color: var(--ana-siyah);
+        color: white;
+      }
+      .main-container {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 30px;
+        max-width: 1200px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+
+      /* SOL TARAF: Egzersiz Planlama */
+      .exercise-section {
+        background: #222;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #444;
+      }
+
+      /* "+" Butonu ve Arama Alanı Stili */
+      .add-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #333;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px dashed var(--altin-sarisi);
+        cursor: pointer;
+        transition: 0.3s;
+        margin-bottom: 20px;
+      }
+      .add-row:hover {
+        background: #3a3a3a;
+      }
+      .plus-icon {
+        background: var(--altin-sarisi);
+        color: black;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      /* Egzersiz Seçim Listesi (Popup Gibi) */
+      #exercise-selector {
+        display: none;
+        background: #1e1e1e;
+        border: 1px solid var(--altin-sarisi);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .selector-item {
+        padding: 10px;
+        border-bottom: 1px solid #333;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+      }
+      .selector-item:hover {
+        background: #333;
+        color: var(--altin-sarisi);
+      }
+
+      /* Seçilen Egzersiz Kartları (Alta doğru sıralanacak) */
+      .selected-exercise-card {
+        background: #2a2a2a;
+        border-left: 4px solid var(--altin-sarisi);
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        animation: slideIn 0.3s ease;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Inputlar */
+      .input-group {
+        display: flex;
+        flex-direction: column;
+      }
+      .input-group label {
+        font-size: 0.8rem;
+        color: #aaa;
+        margin-bottom: 3px;
+      }
+      .small-input {
+        width: 80px;
+        padding: 8px;
+        background: #111;
+        border: 1px solid #444;
+        color: white;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      /* SAĞ TARAF: Beslenme */
+      .nutrition-section {
+        background: #222;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #444;
+        display: flex;
+        flex-direction: column;
+      }
+      textarea {
+        flex: 1;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        resize: none;
+        font-family: sans-serif;
+        min-height: 300px;
+      }
+      textarea:focus {
+        border-color: var(--altin-sarisi);
+        outline: none;
+      }
+
+      /* ALT TARAF: Gönder Butonu */
+      .bottom-bar {
+        grid-column: 1 / -1;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      style="
+        padding: 20px;
+        border-bottom: 2px solid var(--altin-sarisi);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      "
+    >
+      <div>
+        <h2 style="color: var(--altin-sarisi); margin: 0">ÖĞRENCİ YÖNET</h2>
+        <p style="margin: 5px 0 0 0; color: #aaa">
+          Öğrenci:
+          <strong style="color: #fff"
+            >{{ ogrenci.first_name }} {{ ogrenci.last_name }}</strong
+          >
+        </p>
+      </div>
+      <a
+        href="{% url 'antrenor_paneli' %}"
+        style="
+          color: #fff;
+          text-decoration: none;
+          border: 1px solid #fff;
+          padding: 5px 15px;
+          border-radius: 5px;
+        "
+        >İPTAL</a
+      >
+    </div>
+
+    <form method="POST" class="main-container">
+      {% csrf_token %}
+
+      <div class="exercise-section">
+        <h3 style="color: var(--altin-sarisi); margin-top: 0">
+          🏋️ EGZERSİZ PLANLA
+        </h3>
+
+        <div class="add-row" onclick="toggleSelector()">
+          <div class="plus-icon">+</div>
+          <div style="color: #aaa">Egzersiz Ekle...</div>
+        </div>
+
+        <div id="exercise-selector">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Egzersiz ara..."
+            onkeyup="filterExercises()"
+            style="
+              width: 100%;
+              padding: 10px;
+              background: #000;
+              border: 1px solid #555;
+              color: #fff;
+              margin-bottom: 10px;
+              border-radius: 5px;
+            "
+          />
+
+          <div id="listContainer">
+            {% for egzersiz in kutuphane %}
+            <div
+              class="selector-item"
+              onclick="addExercise('{{ egzersiz.id }}', '{{ egzersiz.isim }}')"
+            >
+              <span>{{ egzersiz.isim }}</span>
+              <span style="color: #666; font-size: 0.8rem">➕ Ekle</span>
+            </div>
+            {% empty %}
+            <p style="padding: 10px; color: #666">
+              Kütüphanen boş. Önce egzersiz ekle.
+            </p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="selected-exercises-container"></div>
+      </div>
+
+      <div class="nutrition-section">
+        <h3 style="color: var(--altin-sarisi); margin-top: 0">
+          🍎 BESLENME PLANI
+        </h3>
+        <textarea
+          name="beslenme_notu"
+          placeholder="Bugünkü öğünleri, kalori hedeflerini veya notlarını buraya yaz..."
+        ></textarea>
+      </div>
+
+      <div class="bottom-bar">
+        <button
+          type="submit"
+          class="btn-gold"
+          style="width: 100%; padding: 20px; font-size: 1.2rem; cursor: pointer"
+        >
+          🚀 PLANI GÖNDER
+        </button>
+      </div>
+    </form>
+
+    <script>
+      // Seçim kutusunu aç/kapa
+      function toggleSelector() {
+        const selector = document.getElementById("exercise-selector");
+        if (selector.style.display === "block") {
+          selector.style.display = "none";
+        } else {
+          selector.style.display = "block";
+          document.getElementById("searchInput").focus();
+        }
+      }
+
+      // Arama yapma fonksiyonu
+      function filterExercises() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toLowerCase();
+        const items = document.getElementsByClassName("selector-item");
+
+        for (let i = 0; i < items.length; i++) {
+          const text = items[i].textContent || items[i].innerText;
+          if (text.toLowerCase().indexOf(filter) > -1) {
+            items[i].style.display = "";
+          } else {
+            items[i].style.display = "none";
+          }
+        }
+      }
+
+      // Egzersizi Listeye Ekleme
+      function addExercise(id, name) {
+        const container = document.getElementById(
+          "selected-exercises-container"
+        );
+
+        // HTML Yapısı oluştur
+        const card = document.createElement("div");
+        card.className = "selected-exercise-card";
+
+        card.innerHTML = `
+                <div style="flex: 2; font-weight: bold; font-size: 1.1rem; color: #fff;">${name}</div>
+                
+                <input type="hidden" name="egzersiz_id[]" value="${id}">
+                
+                <div class="input-group">
+                    <label>Set</label>
+                    <input type="text" name="set[]" class="small-input" placeholder="3">
+                </div>
+                
+                <div class="input-group">
+                    <label>Tekrar</label>
+                    <input type="text" name="rep[]" class="small-input" placeholder="12">
+                </div>
+
+                <div onclick="this.parentElement.remove()" style="color: #ff4d4d; cursor: pointer; padding: 5px; font-size: 1.2rem;">
+                    ✕
+                </div>
+            `;
+
+        container.appendChild(card);
+
+        // Seçiciyi kapat ve temizle
+        document.getElementById("exercise-selector").style.display = "none";
+        document.getElementById("searchInput").value = "";
+        filterExercises(); // Listeyi sıfırla
+      }
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <title>Antrenör Paneli - Fitness Pro</title>
+    <title>Antrenör Paneli</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}" />
     <style>
       .container {
@@ -18,24 +18,53 @@
         gap: 10px;
         margin-bottom: 20px;
       }
+
+      /* Kart Düzeni (Düzeltildi) */
       .student-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
       }
       .mini-card {
         background: #333;
-        padding: 15px;
-        border-radius: 8px;
+        padding: 20px;
+        border-radius: 10px;
         border: 1px solid #444;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        box-sizing: border-box;
+        transition: transform 0.2s;
       }
-      .badge {
-        background: var(--altin-sarisi);
+      .mini-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--altin-sarisi);
+      }
+
+      /* Butonlar */
+      .action-btn {
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        width: 100%;
+        margin-top: 15px;
+        font-size: 0.9rem;
+        padding: 10px 0;
+        background-color: var(--altin-sarisi);
         color: #000;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem;
+        border-radius: 5px;
         font-weight: bold;
+      }
+      .action-btn:hover {
+        background-color: #ffd700;
+      }
+      .btn-outline {
+        border: 1px solid #fff;
+        color: #fff;
+        text-decoration: none;
+        padding: 5px 15px;
+        border-radius: 5px;
       }
     </style>
   </head>
@@ -50,33 +79,121 @@
         align-items: center;
       "
     >
-      <h1 style="color: var(--altin-sarisi); margin: 0">
-        COACH PANEL: {{ user.first_name|upper }}
-      </h1>
-      <a
-        href="{% url 'cikis_yap' %}"
-        style="
-          color: #ff4d4d;
-          text-decoration: none;
-          border: 1px solid #ff4d4d;
-          padding: 5px 15px;
-          border-radius: 5px;
-        "
-        >ÇIKIŞ YAP</a
-      >
-    </div>
-    <div style="text-align: center; margin-bottom: 20px">
-      <a
-        href="{% url 'egzersiz_kutuphanesi' %}"
-        class="btn-gold"
-        style="padding: 10px 30px; text-decoration: none; display: inline-block"
-      >
-        📚 EGZERSİZ KÜTÜPHANEMİ YÖNET
-      </a>
+      <div>
+        <h1 style="color: var(--altin-sarisi); margin: 0; font-size: 1.5rem">
+          COACH PANEL
+        </h1>
+        <small style="color: #aaa">Hoş geldin, {{ user.first_name }}</small>
+      </div>
+
+      <div style="display: flex; gap: 10px">
+        <a href="{% url 'egzersiz_kutuphanesi' %}" class="btn-outline"
+          >📚 KÜTÜPHANE</a
+        >
+        <a
+          href="{% url 'mesaj_kutusu' %}"
+          class="btn-outline"
+          style="position: relative; margin-right: 10px"
+        >
+          💬 MESAJLAR {% if okunmamis_mesaj > 0 %}
+          <span
+            style="
+              position: absolute;
+              top: -10px;
+              right: -10px;
+              background: #ff4d4d;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 50%;
+              font-size: 0.7rem;
+            "
+          >
+            {{ okunmamis_mesaj }}
+          </span>
+          {% endif %}
+        </a>
+        <a
+          href="{% url 'cikis_yap' %}"
+          style="
+            color: #ff4d4d;
+            border: 1px solid #ff4d4d;
+            padding: 5px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+          "
+          >ÇIKIŞ</a
+        >
+      </div>
     </div>
 
     <div class="container">
       <div>
+        {% if onay_bekleyenler %}
+        <div style="margin-bottom: 30px">
+          <h3
+            style="
+              color: #fff;
+              background: linear-gradient(45deg, #b8860b, #d4af37);
+              padding: 10px;
+              border-radius: 5px;
+              margin-top: 0;
+              text-shadow: 1px 1px 2px #000;
+            "
+          >
+            🔔 RAPOR BEKLEYEN ÖĞRENCİLER
+          </h3>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+              gap: 15px;
+            "
+          >
+            {% for gorev in onay_bekleyenler %}
+            <a
+              href="{% url 'ogrenci_kontrol' gorev.id %}"
+              style="text-decoration: none"
+            >
+              <div
+                style="
+                  background: #2a2a2a;
+                  padding: 15px;
+                  border-radius: 8px;
+                  border: 1px solid var(--altin-sarisi);
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  transition: 0.3s;
+                "
+              >
+                <div>
+                  <strong style="color: #fff; display: block"
+                    >{{ gorev.ogrenci.first_name }} {{ gorev.ogrenci.last_name
+                    }}</strong
+                  >
+                  <span style="color: #aaa; font-size: 0.8rem"
+                    >{{ gorev.get_tur_display }} Raporu</span
+                  >
+                </div>
+                <div
+                  style="
+                    background: var(--altin-sarisi);
+                    color: #000;
+                    padding: 5px 10px;
+                    border-radius: 20px;
+                    font-weight: bold;
+                    font-size: 0.8rem;
+                  "
+                >
+                  İNCELE ➔
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         <h2
           style="
             color: #fff;
@@ -84,41 +201,51 @@
             padding-bottom: 10px;
           "
         >
-          📋 TAKIMIM ({{ ogrenciler.count }} Öğrenci)
+          📋 TAKIMIM ({{ ogrenciler.count }})
         </h2>
 
         <div class="student-list">
           {% for ogrenci in ogrenciler %}
           <div class="mini-card">
-            <h3 style="color: var(--altin-sarisi); margin: 0 0 10px 0">
-              {{ ogrenci.user.first_name }} {{ ogrenci.user.last_name }}
-            </h3>
-            <p style="color: #aaa; margin: 0">
-              K.Adı: {{ ogrenci.user.username }}
-            </p>
-            <p style="color: #aaa; margin: 5px 0">
-              Durum: {{ ogrenci.boy }}cm / {{ ogrenci.kilo }}kg
-            </p>
+            <div>
+              <h3 style="color: var(--altin-sarisi); margin: 0 0 10px 0">
+                {{ ogrenci.user.first_name }} {{ ogrenci.user.last_name }}
+              </h3>
+              <p style="color: #aaa; margin: 0; font-size: 0.9rem">
+                {{ ogrenci.user.username }}
+              </p>
+              <p style="color: #aaa; margin: 5px 0; font-size: 0.9rem">
+                {{ ogrenci.boy }}cm / {{ ogrenci.kilo }}kg
+              </p>
+            </div>
 
-            <button
-              class="btn-gold"
-              style="width: 100%; margin-top: 10px; font-size: 0.8rem"
+            <a
+              href="{% url 'ogrenci_yonet' ogrenci.user.id %}"
+              class="action-btn"
             >
-              GÖREV YÖNET
-            </button>
+              ÖĞRENCİ YÖNET ⚙️
+            </a>
           </div>
           {% empty %}
-          <p style="color: #666">
-            Henüz takımında hiç öğrenci yok. Sağ taraftan ekle! 👉
+          <p style="color: #666; grid-column: 1/-1">
+            Henüz takımında öğrenci yok. Sağ taraftan davet et!
           </p>
           {% endfor %}
         </div>
       </div>
 
       <div>
-        <div class="card" style="padding: 20px">
+        <div
+          class="card"
+          style="
+            padding: 20px;
+            background: #222;
+            border-radius: 10px;
+            border: 1px solid #333;
+          "
+        >
           <h3 style="color: var(--altin-sarisi); margin-top: 0">
-            🔎 YENİ ÖĞRENCİ EKLE
+            🔎 YENİ ÖĞRENCİ BUL
           </h3>
 
           {% if messages %} {% for message in messages %}
@@ -129,6 +256,7 @@
               padding: 10px;
               border-radius: 5px;
               margin-bottom: 15px;
+              font-size: 0.9rem;
             "
           >
             {{ message }}
@@ -140,18 +268,25 @@
             <input
               type="text"
               name="ogrenci_adi"
-              placeholder="Öğrenci kullanıcı adı..."
+              placeholder="Kullanıcı adı..."
               value="{{ aranan_isim }}"
               style="
-                background: #222;
+                flex: 1;
+                background: #111;
                 border: 1px solid #444;
                 color: #fff;
                 padding: 10px;
                 border-radius: 5px;
-                width: 100%;
               "
             />
-            <button type="submit" name="arama_yap" class="btn-gold">ARA</button>
+            <button
+              type="submit"
+              name="arama_yap"
+              class="btn-gold"
+              style="padding: 0 15px"
+            >
+              ARA
+            </button>
           </form>
 
           {% if arama_sonuclari %}
@@ -200,10 +335,6 @@
             </div>
             {% endfor %}
           </div>
-          {% elif aranan_isim %}
-          <p style="color: #ff4d4d">
-            Böyle bir öğrenci bulunamadı veya zaten bir antrenörü var.
-          </p>
           {% endif %}
         </div>
       </div>

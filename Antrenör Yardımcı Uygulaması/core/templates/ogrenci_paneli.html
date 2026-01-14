@@ -3,148 +3,150 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Öğrenci Paneli - Fitness Pro</title>
+    <title>Öğrenci Paneli</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        .row-container {
-            display: flex;
-            gap: 20px; 
-            flex-wrap: wrap; 
-            text-align: left;
+        /* Genel Düzen */
+        body { background-color: var(--ana-siyah); color: #fff; margin: 0; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; text-align: center; }
+
+        /* Kartlar */
+        .card { background: #222; padding: 20px; margin-bottom: 20px; border-radius: 10px; border: 1px solid #333; text-align: left; }
+        
+        /* İşaretleme Kutuları */
+        .check-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            background: #2a2a2a; padding: 15px; margin-bottom: 10px; 
+            border-radius: 8px; border: 1px solid #444; transition: 0.3s;
         }
-        .column {
-            flex: 1; 
-            min-width: 300px; 
-        }
-        .section-title {
-            color: var(--altin-sarisi);
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-        }
-        /* Davet Kutusu Stili */
-        .davet-box {
-            background: #2a2a2a; 
-            border: 1px solid var(--altin-sarisi); 
-            padding: 20px; 
-            border-radius: 10px; 
-            margin-bottom: 30px; 
-            text-align: left;
-            animation: fadeIn 0.5s ease-in;
-        }
+        .check-container:hover { border-color: var(--altin-sarisi); }
+        .big-checkbox { transform: scale(1.5); cursor: pointer; accent-color: var(--altin-sarisi); }
+        
+        /* Butonlar */
+        .header-btns { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+        .btn-outline { border: 1px solid var(--altin-sarisi); color: var(--altin-sarisi); padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .btn-logout { border: 1px solid #ff4d4d; color: #ff4d4d; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        /* Davet Kutusu */
+        .davet-box { background: #2a2a2a; border: 1px solid var(--altin-sarisi); padding: 20px; border-radius: 10px; margin-bottom: 30px; text-align: left; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
-    <div style="max-width: 1000px; margin: 50px auto; text-align: center;">
+    <div class="container">
         
-        <div style="text-align: right; margin-bottom: 20px;">
-            <a href="{% url 'profil_duzenle' %}" style="text-decoration: none; color: var(--altin-sarisi); border: 1px solid var(--altin-sarisi); padding: 8px 20px; border-radius: 5px; font-weight: bold; margin-right: 10px;">
-                👤 PROFİLİM
+        <div class="header-btns">
+            {% if user.profil.antrenor %}
+            <a href="{% url 'mesaj_kutusu' %}" class="btn-outline" style="position: relative; margin-right: 10px; border-color: #fff; color: #fff;">
+                💬 HOCAMLA KONUŞ
+                {% if okunmamis_mesaj > 0 %}
+                    <span style="position: absolute; top: -10px; right: -10px; background: #ff4d4d; color: white; padding: 2px 6px; border-radius: 50%; font-size: 0.7rem;">
+                        {{ okunmamis_mesaj }}
+                    </span>
+                {% endif %}
             </a>
-            <a href="{% url 'cikis_yap' %}" style="text-decoration: none; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px 20px; border-radius: 5px; font-weight: bold;">
-                ÇIKIŞ YAP ➔
-            </a>
+            {% endif %}
+
+            <a href="{% url 'profil_duzenle' %}" class="btn-outline">👤 PROFİLİM</a>
+            <a href="{% url 'cikis_yap' %}" class="btn-logout">ÇIKIŞ YAP ➔</a>
         </div>
 
         {% if davetler %}
         <div class="davet-box">
-            <h3 style="color: var(--altin-sarisi); margin-top: 0; display: flex; align-items: center; gap: 10px;">
-                🔔 YENİ TAKIM DAVETİ!
-            </h3>
-            <p style="color: #aaa; font-size: 0.9rem;">Aşağıdaki antrenörler seni takımına davet ediyor:</p>
-            
+            <h3 style="color: var(--altin-sarisi); margin-top: 0;">🔔 YENİ TAKIM DAVETİ!</h3>
             {% for davet in davetler %}
-            <div style="background: #333; padding: 15px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--altin-sarisi);">
+            <div style="background: #333; padding: 15px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 5px;">
                 <div>
-                    <strong style="color: #fff; font-size: 1.1rem; display: block;">{{ davet.gonderen.user.first_name }} {{ davet.gonderen.user.last_name }}</strong>
-                    <span style="color: #aaa; font-size: 0.85rem;">Uzmanlık: {{ davet.gonderen.get_uzmanlik_alani_display }}</span>
+                    <strong>{{ davet.gonderen.user.first_name }} {{ davet.gonderen.user.last_name }}</strong>
+                    <br><span style="color: #aaa; font-size: 0.8rem;">{{ davet.gonderen.get_uzmanlik_alani_display }}</span>
                 </div>
-                
-                <form method="POST" style="display: flex; gap: 10px; margin: 0;">
+                <form method="POST" style="display:flex; gap:10px; margin:0;">
                     {% csrf_token %}
                     <input type="hidden" name="davet_id" value="{{ davet.id }}">
-                    <input type="hidden" name="davet_cevap" value="1"> 
-                    
-                    <button type="submit" name="cevap" value="red" style="background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                        REDDET
-                    </button>
-                    <button type="submit" name="cevap" value="kabul" class="btn-gold" style="padding: 8px 20px; cursor: pointer;">
-                        KABUL ET
-                    </button>
+                    <input type="hidden" name="davet_cevap" value="1">
+                    <button type="submit" name="cevap" value="red" style="background:none; border:1px solid #ff4d4d; color:#ff4d4d; padding:5px 10px; cursor:pointer;">Reddet</button>
+                    <button type="submit" name="cevap" value="kabul" class="btn-gold" style="padding:5px 15px; cursor:pointer;">Kabul Et</button>
                 </form>
             </div>
             {% endfor %}
         </div>
         {% endif %}
+
+        {% if messages %}
+            {% for message in messages %}
+            <div style="background: rgba(76, 209, 55, 0.2); color: #4cd137; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
         <div style="background: #333; color: var(--altin-sarisi); padding: 10px 20px; border-radius: 10px; display: inline-block; margin-bottom: 30px; border: 1px solid var(--altin-sarisi);">
             ⭐ YILDIZLARIN: <strong style="font-size: 1.2rem;">{{ yildiz_sayisi }}</strong>
         </div>
         
         <h1>HOŞ GELDİN {{ user.first_name|default:user.username|upper }}</h1>
-        
-        {% if user.profil.antrenor %}
-            <p style="color: #aaa;">Antrenörün: <strong style="color: var(--altin-sarisi);">{{ user.profil.antrenor.user.first_name }} {{ user.profil.antrenor.user.last_name }}</strong></p>
-        {% else %}
-            <p style="color: #666; font-style: italic;">Henüz bir antrenörün yok.</p>
-        {% endif %}
 
-        <h1 style="color: #fff; margin-bottom: 40px; margin-top: 30px;">GÜNLÜK PROGRAMIN</h1>
-        
-        <form method="POST">
-            {% csrf_token %}
+        {% if antrenman_gorevi or beslenme_gorevi %}
             
-            <div class="row-container">
-                
-                <div class="column">
-                    <h2 class="section-title">🏋️ ANTRENMAN</h2>
+            {% if antrenman_gorevi.durum == 'ONAY_BEKLIYOR' or beslenme_gorevi.durum == 'ONAY_BEKLIYOR' %}
+                <div style="text-align: center; padding: 50px; background: #222; border-radius: 10px; border: 1px dashed var(--altin-sarisi); margin-top: 30px;">
+                    <h2 style="color: var(--altin-sarisi);">⏳ RAPOR GÖNDERİLDİ</h2>
+                    <p style="color: #aaa; font-size: 1.1rem;">Antrenörünün kontrol etmesi bekleniyor.<br>Onaylandığında yeni görevlerini görebileceksin.</p>
+                </div>
+            
+            {% else %}
+                <form method="POST">
+                    {% csrf_token %}
                     
-                    {% for gorev in antrenmanlar %}
-                    <div class="card" style="padding: 20px; margin-bottom: 15px;">
-                        <h3 style="color: var(--altin-sarisi); margin: 0;">{{ gorev.baslik }}</h3>
-                        <p style="color: #aaa; margin: 10px 0;">{{ gorev.aciklama }}</p>
+                    {% if antrenman_gorevi %}
+                    <div class="card">
+                        <h2 style="color: var(--altin-sarisi); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                            🏋️ {{ antrenman_gorevi.baslik }}
+                        </h2>
+                        <p style="color: #aaa;">{{ antrenman_gorevi.aciklama }}</p>
                         
-                        <div style="display: flex; justify-content: flex-end;">
-                            <label style="cursor: pointer; color: var(--altin-sarisi); display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                                <input type="checkbox" class="custom-checkbox" name="yapilanlar" value="{{ gorev.id }}" 
-                                {% if gorev.yapildi_mi %}checked{% endif %}> 
-                                TAMAMLA
-                            </label>
+                        <div style="margin-top: 20px;">
+                            {% for hareket in antrenman_gorevi.hareketler.all %}
+                            <div class="check-container">
+                                <div>
+                                    <strong style="font-size: 1.1rem; color: #fff;">{{ hareket.egzersiz.isim }}</strong>
+                                    <div style="color: #aaa; font-size: 0.9rem;">
+                                        Hedef: <span style="color: var(--altin-sarisi);">{{ hareket.set_sayisi }} Set</span> x {{ hareket.tekrar_sayisi }} Tekrar
+                                    </div>
+                                    {% if hareket.egzersiz.video_link %}
+                                        <a href="{{ hareket.egzersiz.video_link }}" target="_blank" style="color: #4da6ff; font-size: 0.8rem;">🎥 Nasıl Yapılır?</a>
+                                    {% endif %}
+                                </div>
+                                <input type="checkbox" name="hareket_id[]" value="{{ hareket.id }}" class="big-checkbox">
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
-                    {% empty %}
-                    <p style="color: #555;">Bugün antrenman yok. Dinlen!</p>
-                    {% endfor %}
-                </div>
+                    {% endif %}
 
-                <div class="column">
-                    <h2 class="section-title">🍎 BESLENME</h2>
-                    
-                    {% for gorev in beslenmeler %}
-                    <div class="card" style="padding: 20px; margin-bottom: 15px;">
-                        <h3 style="color: var(--altin-sarisi); margin: 0;">{{ gorev.baslik }}</h3>
-                        <p style="color: #aaa; margin: 10px 0;">{{ gorev.aciklama }}</p>
+                    {% if beslenme_gorevi %}
+                    <div class="card">
+                        <h2 style="color: var(--altin-sarisi); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                            🍎 {{ beslenme_gorevi.baslik }}
+                        </h2>
+                        <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; color: #ddd; white-space: pre-wrap; margin-bottom: 15px; font-family: monospace;">{{ beslenme_gorevi.aciklama }}</div>
                         
-                        <div style="display: flex; justify-content: flex-end;">
-                            <label style="cursor: pointer; color: var(--altin-sarisi); display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                                <input type="checkbox" class="custom-checkbox" name="yapilanlar" value="{{ gorev.id }}" 
-                                {% if gorev.yapildi_mi %}checked{% endif %}> 
-                                TÜKETTİM
-                            </label>
+                        <div class="check-container" style="justify-content: flex-start; gap: 15px;">
+                            <input type="checkbox" name="beslenme_durum" class="big-checkbox">
+                            <span style="color: #fff; font-size: 1.1rem;">Beslenme programına tam olarak uydum.</span>
                         </div>
                     </div>
-                    {% empty %}
-                    <p style="color: #555;">Beslenme listesi girilmemiş.</p>
-                    {% endfor %}
-                </div>
+                    {% endif %}
 
+                    <button type="submit" name="gunu_bitir" class="btn-gold" style="width: 100%; padding: 20px; font-size: 1.2rem; cursor: pointer; font-weight: bold; margin-top: 20px;">
+                        ✅ GÜNÜ BİTİR VE GÖNDER
+                    </button>
+                </form>
+            {% endif %} {% else %}
+            <div style="text-align: center; color: #666; margin-top: 50px; padding: 40px; border: 1px dashed #444; border-radius: 10px;">
+                <h2>💤 GÖREV YOK</h2>
+                <p>Bugün için atanmış aktif bir görevin yok veya gününü tamamladın. Dinlen!</p>
             </div>
-
-            <button type="submit" class="btn-gold" style="margin-top: 40px; width: 100%; padding: 15px; font-size: 1.2rem; cursor: pointer;">
-                GÜNCELLE VE PUAN TOPLA
-            </button>
-        </form>
-    </div>
+        {% endif %} </div>
 </body>
 </html>

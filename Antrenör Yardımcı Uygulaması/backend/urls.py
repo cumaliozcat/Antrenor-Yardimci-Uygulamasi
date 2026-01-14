@@ -9,7 +9,11 @@ from core.views import (
     antrenor_paneli,
     egzersiz_kutuphanesi,
     egzersiz_sil,
-    egzersiz_duzenle  
+    egzersiz_duzenle,
+    ogrenci_yonet,
+    ogrenci_kontrol,
+    mesaj_kutusu,  
+    sohbet_odasi
 )
 
 urlpatterns = [
@@ -23,4 +27,8 @@ urlpatterns = [
     path('kutuphane/', egzersiz_kutuphanesi, name='egzersiz_kutuphanesi'),
     path('kutuphane/sil/<int:id>/', egzersiz_sil, name='egzersiz_sil'),
     path('kutuphane/duzenle/<int:id>/', egzersiz_duzenle, name='egzersiz_duzenle'),
+    path('yonet/<int:ogrenci_id>/', ogrenci_yonet, name='ogrenci_yonet'),
+    path('kontrol/<int:gorev_id>/', ogrenci_kontrol, name='ogrenci_kontrol'),
+    path('mesajlar/', mesaj_kutusu, name='mesaj_kutusu'),
+    path('sohbet/<int:user_id>/', sohbet_odasi, name='sohbet_odasi'),
 ]

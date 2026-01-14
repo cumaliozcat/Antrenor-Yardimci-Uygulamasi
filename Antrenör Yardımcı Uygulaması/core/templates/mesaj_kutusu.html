@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesajlar</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body { background-color: var(--ana-siyah); color: #fff; max-width: 800px; margin: 30px auto; padding: 20px; }
+        .list-item {
+            background: #222; padding: 20px; border-radius: 10px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.3s;
+        }
+        .list-item:hover { background: #2a2a2a; border-color: var(--altin-sarisi); }
+        .badge { background: #ff4d4d; color: white; padding: 5px 10px; border-radius: 50%; font-size: 0.8rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: var(--altin-sarisi); margin: 0;">💬 MESAJLAR</h2>
+        <a href="{% url 'antrenor_paneli' %}" style="color: #fff; text-decoration: none; border: 1px solid #fff; padding: 5px 15px; border-radius: 5px;">PANELE DÖN</a>
+    </div>
+
+    <div>
+        {% for item in sohbet_listesi %}
+        <a href="{% url 'sohbet_odasi' item.user.id %}" class="list-item">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div style="width: 50px; height: 50px; background: #444; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; color: var(--altin-sarisi);">
+                    {{ item.user.first_name|first }}
+                </div>
+                <div>
+                    <strong style="font-size: 1.1rem;">{{ item.user.first_name }} {{ item.user.last_name }}</strong>
+                    <div style="color: #aaa; font-size: 0.9rem; margin-top: 5px;">
+                        {% if item.son_mesaj %}
+                            {% if item.son_mesaj.gonderen == user %}Sen: {% endif %}
+                            {{ item.son_mesaj.icerik|truncatechars:30 }}
+                        {% else %}
+                            Henüz mesajlaşma yok.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if item.okunmamis > 0 %}
+                <div class="badge">{{ item.okunmamis }}</div>
+            {% endif %}
+        </a>
+        {% empty %}
+            <p style="text-align: center; color: #666;">Hiç öğrenciniz yok.</p>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
