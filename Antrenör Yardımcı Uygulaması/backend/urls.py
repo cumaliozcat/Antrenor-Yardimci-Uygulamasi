@@ -13,7 +13,8 @@ from core.views import (
     ogrenci_yonet,
     ogrenci_kontrol,
     mesaj_kutusu,  
-    sohbet_odasi
+    sohbet_odasi,
+    yapay_zeka_sor
 )
 
 urlpatterns = [
@@ -31,4 +32,5 @@ urlpatterns = [
     path('kontrol/<int:gorev_id>/', ogrenci_kontrol, name='ogrenci_kontrol'),
     path('mesajlar/', mesaj_kutusu, name='mesaj_kutusu'),
     path('sohbet/<int:user_id>/', sohbet_odasi, name='sohbet_odasi'),
+    path('api/chatbot/', yapay_zeka_sor, name='yapay_zeka_sor'),
 ]

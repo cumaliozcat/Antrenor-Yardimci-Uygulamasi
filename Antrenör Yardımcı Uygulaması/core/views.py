@@ -3,11 +3,14 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-from django.db.models import Q # Mesajlaşma sorguları için gerekli
-# Modellerin hepsini import ettiğimizden emin olalım
+from django.db.models import Q 
 from .models import Gorev, Profil, AntrenorProfil, Davet, Egzersiz, AntrenmanHareket, Mesaj
 from .forms import ProfilForm, EgzersizForm
 import datetime
+import google.generativeai as genai
+from django.http import JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
 
 # --- 1. GİRİŞ YAPMA ---
 def giris_yap(request):
@@ -439,3 +442,42 @@ def sohbet_odasi(request, user_id):
         'karshi_taraf': karshi_taraf,
         'mesajlar': mesajlar
     })
+    
+    # --- 11. YAPAY ZEKA ASİSTANI (CHATBOT) ---
+@csrf_exempt
+def yapay_zeka_sor(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            soru = data.get('mesaj', '')
+            
+            # API ANAHTARIN (Buraya kendi anahtarını yapıştırmayı unutma!)
+            GOOGLE_API_KEY = "AIzaSyCdxC6fWFN_ZfAidntRFwfOIweXSB4PuyI"
+            
+            genai.configure(api_key=GOOGLE_API_KEY)
+            
+            # GÜNCELLENEN KISIM: Listendeki en uygun modeli seçtik
+            model = genai.GenerativeModel('gemini-flash-latest')
+            
+            prompt = f"""
+            Sen Fitness Pro uygulamasının yardımcı yapay zeka asistanısın.
+            Adın "FitBot".
+            Sadece fitness, vücut geliştirme, beslenme, diyet ve sağlık konularında sorulara cevap ver.
+            Kısa, öz ve motive edici cevaplar ver.
+            Eğer konu spor dışındaysa (siyaset, tarih vb.) nazikçe cevap veremeyeceğini söyle.
+            
+            Kullanıcı Sorusu: {soru}
+            """
+            
+            response = model.generate_content(prompt)
+            
+            cevap = response.text
+            
+            return JsonResponse({'cevap': cevap, 'durum': 'basarili'})
+            
+        except Exception as e:
+            # Hatayı terminalde görmek için print ekledik
+            print("HATA:", e)
+            return JsonResponse({'cevap': f'Bir bağlantı hatası oldu: {str(e)}', 'durum': 'hata'})
+            
+    return JsonResponse({'error': 'Sadece POST isteği kabul edilir'}, status=400)

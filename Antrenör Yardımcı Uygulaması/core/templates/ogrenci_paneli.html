@@ -148,5 +148,101 @@
                 <p>Bugün için atanmış aktif bir görevin yok veya gününü tamamladın. Dinlen!</p>
             </div>
         {% endif %} </div>
+
+        <div id="chat-btn" onclick="toggleChat()" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--altin-sarisi); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1000; transition: 0.3s;">
+        <span style="font-size: 30px;">🤖</span>
+    </div>
+
+    <div id="chat-window" style="display: none; position: fixed; bottom: 100px; right: 30px; width: 350px; height: 500px; background: #1e1e1e; border-radius: 15px; border: 1px solid var(--altin-sarisi); z-index: 1000; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+        
+        <div style="background: var(--altin-sarisi); padding: 15px; color: #000; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+            <span>🤖 FitBot Asistan</span>
+            <span onclick="toggleChat()" style="cursor: pointer; font-size: 1.2rem;">✕</span>
+        </div>
+
+        <div id="ai-messages" style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;">
+            <div style="align-self: flex-start; background: #333; color: #fff; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; font-size: 0.9rem;">
+                Merhaba! Ben FitBot. Egzersizler, beslenme veya antrenman programınla ilgili bana her şeyi sorabilirsin. 💪
+            </div>
+        </div>
+
+        <div style="padding: 10px; background: #222; display: flex; gap: 5px; border-top: 1px solid #333;">
+            <input type="text" id="user-input" placeholder="Bir soru sor..." onkeypress="handleEnter(event)" 
+                   style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #444; background: #111; color: #fff; outline: none;">
+            <button onclick="sendMessage()" style="background: var(--altin-sarisi); border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-weight: bold;">➤</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleChat() {
+            var chatWindow = document.getElementById("chat-window");
+            if (chatWindow.style.display === "none") {
+                chatWindow.style.display = "flex";
+                document.getElementById("user-input").focus();
+            } else {
+                chatWindow.style.display = "none";
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            var input = document.getElementById("user-input");
+            var message = input.value.trim();
+            if (!message) return;
+
+            var messageArea = document.getElementById("ai-messages");
+
+            // Kullanıcı Mesajını Ekle
+            var userBubble = document.createElement("div");
+            userBubble.style = "align-self: flex-end; background: var(--altin-sarisi); color: #000; padding: 10px 15px; border-radius: 15px 15px 0 15px; max-width: 80%; font-size: 0.9rem; margin-bottom: 5px;";
+            userBubble.innerText = message;
+            messageArea.appendChild(userBubble);
+
+            input.value = "";
+            messageArea.scrollTop = messageArea.scrollHeight;
+
+            // "Yazıyor..." animasyonu ekle
+            var loadingBubble = document.createElement("div");
+            loadingBubble.id = "loading-bubble";
+            loadingBubble.style = "align-self: flex-start; background: #333; color: #aaa; padding: 10px 15px; border-radius: 15px 15px 15px 0; font-size: 0.8rem;";
+            loadingBubble.innerText = "FitBot düşünüyor...";
+            messageArea.appendChild(loadingBubble);
+
+            // Backend'e Gönder (AJAX)
+            fetch('/api/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ mesaj: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Loading'i kaldır
+                document.getElementById("loading-bubble").remove();
+
+                // Yapay Zeka Cevabını Ekle
+                var aiBubble = document.createElement("div");
+                aiBubble.style = "align-self: flex-start; background: #333; color: #fff; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; font-size: 0.9rem; margin-bottom: 5px; line-height: 1.4;";
+                
+                // Basit Markdown temizliği (Yıldızları kalın yap)
+                var cleanText = data.cevap.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
+                aiBubble.innerHTML = cleanText;
+                
+                messageArea.appendChild(aiBubble);
+                messageArea.scrollTop = messageArea.scrollHeight;
+            })
+            .catch(error => {
+                document.getElementById("loading-bubble").remove();
+                alert("Bir hata oluştu.");
+            });
+        }
+    </script>
+    ```
+
+
 </body>
 </html>
