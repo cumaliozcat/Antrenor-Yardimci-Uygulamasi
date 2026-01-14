@@ -14,7 +14,10 @@ from core.views import (
     ogrenci_kontrol,
     mesaj_kutusu,  
     sohbet_odasi,
-    yapay_zeka_sor
+    yapay_zeka_sor,
+    ogrenci_sil,      
+    takimdan_ayril,
+    antrenor_profil_duzenle,
 )
 
 urlpatterns = [
@@ -33,4 +36,8 @@ urlpatterns = [
     path('mesajlar/', mesaj_kutusu, name='mesaj_kutusu'),
     path('sohbet/<int:user_id>/', sohbet_odasi, name='sohbet_odasi'),
     path('api/chatbot/', yapay_zeka_sor, name='yapay_zeka_sor'),
+    path('ogrenci-sil/<int:ogrenci_id>/', ogrenci_sil, name='ogrenci_sil'),
+    path('takimdan-ayril/', takimdan_ayril, name='takimdan_ayril'),
+    path('profil-duzenle/', profil_duzenle, name='profil_duzenle'), # Mevcut
+    path('koc-profil-duzenle/', antrenor_profil_duzenle, name='antrenor_profil_duzenle'),
 ]

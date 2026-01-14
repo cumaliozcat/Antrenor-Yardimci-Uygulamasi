@@ -1,16 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
-from django.db.models import Q 
-from .models import Gorev, Profil, AntrenorProfil, Davet, Egzersiz, AntrenmanHareket, Mesaj
-from .forms import ProfilForm, EgzersizForm
-import datetime
-import google.generativeai as genai
+from django.db.models import Q
 from django.http import JsonResponse
-import json
 from django.views.decorators.csrf import csrf_exempt
+import json
+import google.generativeai as genai
+import datetime
+
+# MODELLER
+from .models import Gorev, Profil, AntrenorProfil, Davet, Egzersiz, AntrenmanHareket, Mesaj
+
+# FORMLAR (DÜZELTİLDİ: Artık ProfilForm yok, yenileri var)
+from .forms import (
+    EgzersizForm,
+    KullaniciGuncellemeForm, 
+    OgrenciProfilForm, 
+    AntrenorProfilForm
+)
 
 # --- 1. GİRİŞ YAPMA ---
 def giris_yap(request):
@@ -93,55 +102,65 @@ def ogrenci_paneli(request):
     aktif_kullanici = request.user
     bugun = datetime.date.today()
 
-    # -- A) DAVET CEVAPLAMA --
-    if request.method == "POST" and 'davet_cevap' in request.POST:
-        davet_id = request.POST.get('davet_id')
-        cevap = request.POST.get('cevap')
-        try:
-            davet = Davet.objects.get(id=davet_id, alici=aktif_kullanici)
-            if cevap == 'kabul':
-                davet.durum = 'KABUL'
-                davet.save()
-                profil = aktif_kullanici.profil
-                profil.antrenor = davet.gonderen
-                profil.save()
-                messages.success(request, f"{davet.gonderen.user.first_name} hocanın takımına katıldın!")
-            else:
-                davet.durum = 'RED'
-                davet.save()
-        except Davet.DoesNotExist: pass
-        return redirect('ogrenci_paneli')
+    # -- A) DAVET CEVAPLAMA VE RAPOR GÖNDERME --
+    if request.method == "POST":
+        # Davet Cevabı
+        if 'davet_cevap' in request.POST:
+            davet_id = request.POST.get('davet_id')
+            cevap = request.POST.get('cevap')
+            try:
+                davet = Davet.objects.get(id=davet_id, alici=aktif_kullanici)
+                if cevap == 'kabul':
+                    davet.durum = 'KABUL'
+                    davet.save()
+                    profil = aktif_kullanici.profil
+                    profil.antrenor = davet.gonderen
+                    profil.save()
+                    messages.success(request, f"{davet.gonderen.user.first_name} hocanın takımına katıldın!")
+                else:
+                    davet.durum = 'RED'
+                    davet.save()
+            except Davet.DoesNotExist: pass
+            return redirect('ogrenci_paneli')
 
-    # -- B) BUGÜNKÜ GÖREVLERİ ÇEK --
+        # Günü Bitir (Rapor Gönder)
+        elif 'gunu_bitir' in request.POST:
+            # Bugüne ait antrenman ve beslenme görevlerini bul
+            o_gunku_gorevler = Gorev.objects.filter(ogrenci=aktif_kullanici, tarih=bugun).exclude(durum='TAMAMLANDI')
+            
+            antrenman_gorevi = o_gunku_gorevler.filter(tur='ANTREMAN').first()
+            if antrenman_gorevi:
+                secilen_hareketler = request.POST.getlist('hareket_id[]')
+                
+                # Önce hepsini sıfırla
+                for hareket in antrenman_gorevi.hareketler.all():
+                    hareket.yapildi_mi = False
+                    hareket.save()
+                
+                # Seçilenleri işaretle
+                for h_id in secilen_hareketler:
+                    h = AntrenmanHareket.objects.get(id=h_id)
+                    h.yapildi_mi = True
+                    h.save()
+                
+                antrenman_gorevi.durum = 'ONAY_BEKLIYOR'
+                antrenman_gorevi.save()
+
+            beslenme_gorevi = o_gunku_gorevler.filter(tur='BESLENME').first()
+            if beslenme_gorevi:
+                beslenme_yapildi = request.POST.get('beslenme_durum') == 'on'
+                beslenme_gorevi.yapildi_mi = beslenme_yapildi
+                beslenme_gorevi.durum = 'ONAY_BEKLIYOR'
+                beslenme_gorevi.save()
+
+            messages.success(request, "Raporun antrenörüne gönderildi, onay bekleniyor.")
+            return redirect('ogrenci_paneli')
+
+    # -- B) GÖRÜNTÜLEME VERİLERİ --
     bugunku_gorevler = Gorev.objects.filter(ogrenci=aktif_kullanici, tarih=bugun).exclude(durum='TAMAMLANDI')
-    
     antrenman_gorevi = bugunku_gorevler.filter(tur='ANTREMAN').first()
     beslenme_gorevi = bugunku_gorevler.filter(tur='BESLENME').first()
-
-    # -- C) GÜNÜ BİTİR VE GÖNDER (RAPORLAMA) --
-    if request.method == "POST" and 'gunu_bitir' in request.POST:
-        if antrenman_gorevi:
-            secilen_hareketler = request.POST.getlist('hareket_id[]')
-            for hareket in antrenman_gorevi.hareketler.all():
-                hareket.yapildi_mi = False
-                hareket.save()
-            for h_id in secilen_hareketler:
-                h = AntrenmanHareket.objects.get(id=h_id)
-                h.yapildi_mi = True
-                h.save()
-            antrenman_gorevi.durum = 'ONAY_BEKLIYOR'
-            antrenman_gorevi.save()
-
-        if beslenme_gorevi:
-            beslenme_yapildi = request.POST.get('beslenme_durum') == 'on'
-            beslenme_gorevi.yapildi_mi = beslenme_yapildi
-            beslenme_gorevi.durum = 'ONAY_BEKLIYOR'
-            beslenme_gorevi.save()
-
-        messages.success(request, "Raporun antrenörüne gönderildi, onay bekleniyor.")
-        return redirect('ogrenci_paneli')
-
-    # -- D) CONTEXT VERİLERİ --
+    
     yildiz_sayisi = 0
     gelen_davetler = []
     
@@ -149,7 +168,7 @@ def ogrenci_paneli(request):
         yildiz_sayisi = aktif_kullanici.profil.yildiz_bakiyesi
         gelen_davetler = Davet.objects.filter(alici=aktif_kullanici, durum='BEKLIYOR')
 
-    # -- E) BİLDİRİM HESAPLAMA (YENİ) --
+    # Bildirim Sayısı
     okunmamis_mesaj = Mesaj.objects.filter(alici=aktif_kullanici, okundu_mu=False).count()
 
     return render(request, 'ogrenci_paneli.html', {
@@ -157,27 +176,51 @@ def ogrenci_paneli(request):
         'beslenme_gorevi': beslenme_gorevi,
         'yildiz_sayisi': yildiz_sayisi,
         'davetler': gelen_davetler,
-        'okunmamis_mesaj': okunmamis_mesaj # Template'e gönderiyoruz
+        'okunmamis_mesaj': okunmamis_mesaj
     })
 
 
-# --- 5. PROFİL DÜZENLEME ---
+# --- 5. ÖĞRENCİ PROFİL DÜZENLEME (GÜNCELLENMİŞ) ---
 def profil_duzenle(request):
     if not request.user.is_authenticated: return redirect('giris_yap')
-    profil, created = Profil.objects.get_or_create(user=request.user)
+    if hasattr(request.user, 'antrenor_profili'): return redirect('antrenor_profil_duzenle')
+
+    profil, _ = Profil.objects.get_or_create(user=request.user)
+
+    # Formları Tanımla
+    user_form = KullaniciGuncellemeForm(instance=request.user)
+    profil_form = OgrenciProfilForm(instance=profil)
+    password_form = PasswordChangeForm(request.user)
 
     if request.method == 'POST':
-        form = ProfilForm(request.POST, instance=profil)
-        if form.is_valid():
-            form.save()
-            return redirect('ogrenci_paneli')
-    else:
-        form = ProfilForm(instance=profil)
+        # Hangi butona basıldı?
+        if 'bilgi_guncelle' in request.POST:
+            user_form = KullaniciGuncellemeForm(request.POST, instance=request.user)
+            profil_form = OgrenciProfilForm(request.POST, instance=profil)
+            if user_form.is_valid() and profil_form.is_valid():
+                user_form.save()
+                profil_form.save()
+                messages.success(request, "Profil bilgilerin başarıyla güncellendi.")
+                return redirect('profil_duzenle')
+        
+        elif 'sifre_degistir' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)  # Oturum açık kalsın
+                messages.success(request, "Şifren başarıyla değiştirildi.")
+                return redirect('profil_duzenle')
+            else:
+                messages.error(request, "Şifre değiştirilirken hata oluştu. Kurallara dikkat et.")
 
-    return render(request, 'profil_duzenle.html', {'form': form})
+    return render(request, 'profil_duzenle.html', {
+        'user_form': user_form,
+        'profil_form': profil_form,
+        'password_form': password_form
+    })
 
 
-# --- 6. ANTRENÖR PANELİ ---
+# --- 6. ANTRENÖR PANELİ (GÜNCELLENMİŞ) ---
 def antrenor_paneli(request):
     if not request.user.is_authenticated: return redirect('giris_yap')
     
@@ -208,22 +251,22 @@ def antrenor_paneli(request):
     # -- B) LİSTELER --
     benim_ogrencilerim = aktif_antrenor.ogrenciler.all()
 
-    # -- C) RAPORLARI GRUPLAMA --
-    bekleyen_tum_gorevler = Gorev.objects.filter(
+    # -- C) RAPORLARI GRUPLAMA VE DÜZELTME --
+    bekleyenler = Gorev.objects.filter(
         ogrenci__profil__antrenor=aktif_antrenor, 
         durum='ONAY_BEKLIYOR'
-    ).order_by('-tarih')
+    ).order_by('-tarih', '-id')
 
     onay_bekleyenler = []
     eklenen_kontrol = set()
 
-    for gorev in bekleyen_tum_gorevler:
+    for gorev in bekleyenler:
         anahtar = (gorev.ogrenci.id, gorev.tarih)
         if anahtar not in eklenen_kontrol:
             onay_bekleyenler.append(gorev)
             eklenen_kontrol.add(anahtar)
 
-    # -- D) BİLDİRİM HESAPLAMA (YENİ - EKSİK OLAN KISIM BUYDU) --
+    # -- D) BİLDİRİM HESAPLAMA --
     okunmamis_mesaj = Mesaj.objects.filter(alici=request.user, okundu_mu=False).count()
 
     return render(request, 'antrenor_paneli.html', {
@@ -231,7 +274,7 @@ def antrenor_paneli(request):
         'arama_sonuclari': arama_sonuclari,
         'aranan_isim': aranan_isim,
         'onay_bekleyenler': onay_bekleyenler,
-        'okunmamis_mesaj': okunmamis_mesaj # Template'e gönderiyoruz
+        'okunmamis_mesaj': okunmamis_mesaj
     })
 
 
@@ -291,6 +334,7 @@ def ogrenci_yonet(request, ogrenci_id):
     if request.method == 'POST':
         tarih = datetime.date.today()
         
+        # A) Antrenman Kaydı
         egzersiz_ids = request.POST.getlist('egzersiz_id[]')
         sets = request.POST.getlist('set[]')
         reps = request.POST.getlist('rep[]')
@@ -312,6 +356,7 @@ def ogrenci_yonet(request, ogrenci_id):
                     tekrar_sayisi=reps[i]
                 )
 
+        # B) Beslenme Kaydı
         beslenme_notu = request.POST.get('beslenme_notu')
         if beslenme_notu and beslenme_notu.strip():
             Gorev.objects.create(
@@ -335,25 +380,30 @@ def ogrenci_kontrol(request, gorev_id):
     if not request.user.is_authenticated: return redirect('giris_yap')
     
     baz_gorev = get_object_or_404(Gorev, id=gorev_id)
+    
     if baz_gorev.ogrenci.profil.antrenor != request.user.antrenor_profili:
         return redirect('antrenor_paneli')
 
-    o_gunku_gorevler = Gorev.objects.filter(ogrenci=baz_gorev.ogrenci, tarih=baz_gorev.tarih)
+    o_gunku_gorevler = Gorev.objects.filter(
+        ogrenci=baz_gorev.ogrenci, 
+        tarih=baz_gorev.tarih
+    )
+    
     antrenman_gorevi = o_gunku_gorevler.filter(tur='ANTREMAN').first()
     beslenme_gorevi = o_gunku_gorevler.filter(tur='BESLENME').first()
 
     if request.method == 'POST':
         yildiz_miktari = int(request.POST.get('yildiz_miktari', 0))
+        
         profil = baz_gorev.ogrenci.profil
         profil.yildiz_bakiyesi += yildiz_miktari
         profil.save()
         
-        bekleyenler = o_gunku_gorevler.filter(durum='ONAY_BEKLIYOR')
-        for g in bekleyenler:
+        for g in o_gunku_gorevler:
             g.durum = 'TAMAMLANDI'
             g.save()
 
-        messages.success(request, f"Günlük rapor onaylandı, {yildiz_miktari} yıldız gönderildi.")
+        messages.success(request, f"Rapor onaylandı, gün kapatıldı ve {yildiz_miktari} yıldız gönderildi.")
         return redirect('antrenor_paneli')
 
     return render(request, 'ogrenci_kontrol.html', {
@@ -364,15 +414,13 @@ def ogrenci_kontrol(request, gorev_id):
     })
 
 
-# --- 10. MESAJLAŞMA SİSTEMİ (YENİ) ---
+# --- 10. MESAJLAŞMA SİSTEMİ ---
 def mesaj_kutusu(request):
-    """Sadece Antrenörler için: Mesajlaştığı öğrencilerin listesi"""
     if not request.user.is_authenticated: return redirect('giris_yap')
     
     try:
         antrenor = request.user.antrenor_profili
     except:
-        # Öğrenciyse direkt kendi hocasıyla sohbete gitsin
         if hasattr(request.user, 'profil') and request.user.profil.antrenor:
             hoca_id = request.user.profil.antrenor.user.id
             return redirect('sohbet_odasi', user_id=hoca_id)
@@ -399,13 +447,11 @@ def mesaj_kutusu(request):
 
 
 def sohbet_odasi(request, user_id):
-    """Hem Öğrenci Hem Antrenör için Ortak Sohbet Ekranı"""
     if not request.user.is_authenticated: return redirect('giris_yap')
     
     karshi_taraf = get_object_or_404(User, id=user_id)
     ben = request.user
 
-    # YETKİ KONTROLÜ
     izin_var = False
     if hasattr(ben, 'profil'):
         if ben.profil.antrenor and ben.profil.antrenor.user == karshi_taraf:
@@ -419,20 +465,17 @@ def sohbet_odasi(request, user_id):
         if hasattr(ben, 'antrenor_profili'): return redirect('mesaj_kutusu')
         return redirect('ogrenci_paneli')
 
-    # MESAJ GÖNDERME
     if request.method == "POST":
         icerik = request.POST.get('mesaj_icerigi')
         if icerik and icerik.strip():
             Mesaj.objects.create(gonderen=ben, alici=karshi_taraf, icerik=icerik)
             return redirect('sohbet_odasi', user_id=user_id)
 
-    # MESAJLARI GETİR
     mesajlar = Mesaj.objects.filter(
         (Q(gonderen=ben) & Q(alici=karshi_taraf)) |
         (Q(gonderen=karshi_taraf) & Q(alici=ben))
     ).order_by('tarih')
 
-    # OKUNDU İŞARETLE
     okunmamislar = mesajlar.filter(gonderen=karshi_taraf, okundu_mu=False)
     for m in okunmamislar:
         m.okundu_mu = True
@@ -442,8 +485,9 @@ def sohbet_odasi(request, user_id):
         'karshi_taraf': karshi_taraf,
         'mesajlar': mesajlar
     })
-    
-    # --- 11. YAPAY ZEKA ASİSTANI (CHATBOT) ---
+
+
+# --- 11. YAPAY ZEKA ASİSTANI (CHATBOT) ---
 @csrf_exempt
 def yapay_zeka_sor(request):
     if request.method == 'POST':
@@ -451,12 +495,12 @@ def yapay_zeka_sor(request):
             data = json.loads(request.body)
             soru = data.get('mesaj', '')
             
-            # API ANAHTARIN (Buraya kendi anahtarını yapıştırmayı unutma!)
-            GOOGLE_API_KEY = "AIzaSyCdxC6fWFN_ZfAidntRFwfOIweXSB4PuyI"
+            # API ANAHTARIN
+            GOOGLE_API_KEY = "BURAYA_KOPYALADIGINIZ_UZUN_ANAHTARI_YAPISTIRIN"
             
             genai.configure(api_key=GOOGLE_API_KEY)
             
-            # GÜNCELLENEN KISIM: Listendeki en uygun modeli seçtik
+            # GÜNCEL MODEL
             model = genai.GenerativeModel('gemini-flash-latest')
             
             prompt = f"""
@@ -470,14 +514,78 @@ def yapay_zeka_sor(request):
             """
             
             response = model.generate_content(prompt)
-            
-            cevap = response.text
-            
-            return JsonResponse({'cevap': cevap, 'durum': 'basarili'})
+            return JsonResponse({'cevap': response.text, 'durum': 'basarili'})
             
         except Exception as e:
-            # Hatayı terminalde görmek için print ekledik
             print("HATA:", e)
-            return JsonResponse({'cevap': f'Bir bağlantı hatası oldu: {str(e)}', 'durum': 'hata'})
+            return JsonResponse({'cevap': 'Bağlantı sorunu oluştu. Lütfen tekrar dene.', 'durum': 'hata'})
             
     return JsonResponse({'error': 'Sadece POST isteği kabul edilir'}, status=400)
+
+
+# --- 12. TAKIM YÖNETİMİ (SİLME VE AYRILMA) ---
+def ogrenci_sil(request, ogrenci_id):
+    if not request.user.is_authenticated: return redirect('giris_yap')
+    if not hasattr(request.user, 'antrenor_profili'): return redirect('ogrenci_paneli')
+    
+    hedef_ogrenci = get_object_or_404(User, id=ogrenci_id)
+    
+    if hedef_ogrenci.profil.antrenor == request.user.antrenor_profili:
+        hedef_ogrenci.profil.antrenor = None
+        hedef_ogrenci.profil.save()
+        messages.success(request, f"{hedef_ogrenci.first_name} takımdan çıkarıldı.")
+    else:
+        messages.error(request, "Bu işlem için yetkiniz yok.")
+    return redirect('antrenor_paneli')
+
+def takimdan_ayril(request):
+    if not request.user.is_authenticated: return redirect('giris_yap')
+    if hasattr(request.user, 'antrenor_profili'): return redirect('antrenor_paneli')
+        
+    profil = request.user.profil
+    if profil.antrenor:
+        eski_hoca = profil.antrenor.user.first_name
+        profil.antrenor = None
+        profil.save()
+        messages.info(request, f"{eski_hoca} hocanın takımından ayrıldın.")
+    
+    return redirect('ogrenci_paneli')
+
+
+# --- 13. ANTRENÖR PROFİL DÜZENLEME ---
+def antrenor_profil_duzenle(request):
+    if not request.user.is_authenticated: return redirect('giris_yap')
+    try:
+        profil = request.user.antrenor_profili
+    except:
+        return redirect('ogrenci_paneli')
+
+    user_form = KullaniciGuncellemeForm(instance=request.user)
+    profil_form = AntrenorProfilForm(instance=profil)
+    password_form = PasswordChangeForm(request.user)
+
+    if request.method == 'POST':
+        if 'bilgi_guncelle' in request.POST:
+            user_form = KullaniciGuncellemeForm(request.POST, instance=request.user)
+            profil_form = AntrenorProfilForm(request.POST, instance=profil)
+            if user_form.is_valid() and profil_form.is_valid():
+                user_form.save()
+                profil_form.save()
+                messages.success(request, "Antrenör profilin güncellendi.")
+                return redirect('antrenor_profil_duzenle')
+        
+        elif 'sifre_degistir' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Şifren başarıyla değiştirildi.")
+                return redirect('antrenor_profil_duzenle')
+            else:
+                messages.error(request, "Şifre hatası. Lütfen tekrar dene.")
+
+    return render(request, 'antrenor_profil_duzenle.html', {
+        'user_form': user_form,
+        'profil_form': profil_form,
+        'password_form': password_form
+    })

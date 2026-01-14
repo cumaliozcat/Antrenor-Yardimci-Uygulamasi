@@ -69,131 +69,91 @@
     </style>
   </head>
   <body>
-    <div
-      style="
-        background: #1e1e1e;
-        padding: 20px;
-        border-bottom: 2px solid var(--altin-sarisi);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
-      <div>
-        <h1 style="color: var(--altin-sarisi); margin: 0; font-size: 1.5rem">
-          COACH PANEL
-        </h1>
-        <small style="color: #aaa">Hoş geldin, {{ user.first_name }}</small>
-      </div>
+    <div style="background: #1e1e1e; padding: 20px; border-bottom: 2px solid var(--altin-sarisi); display: flex; justify-content: space-between; align-items: center;">
+        
+        <div>
+            <h1 style="color: var(--altin-sarisi); margin: 0; font-size: 1.5rem;">COACH PANEL</h1>
+            <small style="color: #aaa;">Hoş geldin, {{ user.first_name }}</small>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            
+            <a href="{% url 'mesaj_kutusu' %}" class="btn-outline" style="position: relative;">
+                💬 MESAJLAR
+                {% if okunmamis_mesaj > 0 %}
+                    <span style="position: absolute; top: -10px; right: -10px; background: #ff4d4d; color: white; padding: 2px 6px; border-radius: 50%; font-size: 0.7rem;">
+                        {{ okunmamis_mesaj }}
+                    </span>
+                {% endif %}
+            </a>
 
-      <div style="display: flex; gap: 10px">
-        <a href="{% url 'egzersiz_kutuphanesi' %}" class="btn-outline"
-          >📚 KÜTÜPHANE</a
-        >
-        <a
-          href="{% url 'mesaj_kutusu' %}"
-          class="btn-outline"
-          style="position: relative; margin-right: 10px"
-        >
-          💬 MESAJLAR {% if okunmamis_mesaj > 0 %}
-          <span
-            style="
-              position: absolute;
-              top: -10px;
-              right: -10px;
-              background: #ff4d4d;
-              color: white;
-              padding: 2px 6px;
-              border-radius: 50%;
-              font-size: 0.7rem;
-            "
-          >
-            {{ okunmamis_mesaj }}
-          </span>
-          {% endif %}
-        </a>
-        <a
-          href="{% url 'cikis_yap' %}"
-          style="
-            color: #ff4d4d;
-            border: 1px solid #ff4d4d;
-            padding: 5px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-          "
-          >ÇIKIŞ</a
-        >
-      </div>
+            <a href="{% url 'antrenor_profil_duzenle' %}" class="btn-outline">
+                👤 PROFİLİM
+            </a>
+
+            <a href="{% url 'egzersiz_kutuphanesi' %}" class="btn-outline">
+                📚 KÜTÜPHANE
+            </a>
+
+            <a href="{% url 'cikis_yap' %}" style="color: #ff4d4d; border: 1px solid #ff4d4d; padding: 5px 15px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+                ÇIKIŞ
+            </a>
+        </div>
     </div>
+    ```
 
     <div class="container">
       <div>
         {% if onay_bekleyenler %}
-        <div style="margin-bottom: 30px">
-          <h3
-            style="
-              color: #fff;
-              background: linear-gradient(45deg, #b8860b, #d4af37);
-              padding: 10px;
-              border-radius: 5px;
-              margin-top: 0;
-              text-shadow: 1px 1px 2px #000;
-            "
-          >
-            🔔 RAPOR BEKLEYEN ÖĞRENCİLER
-          </h3>
-          <div
-            style="
-              display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-              gap: 15px;
-            "
-          >
-            {% for gorev in onay_bekleyenler %}
-            <a
-              href="{% url 'ogrenci_kontrol' gorev.id %}"
-              style="text-decoration: none"
-            >
-              <div
-                style="
-                  background: #2a2a2a;
-                  padding: 15px;
-                  border-radius: 8px;
-                  border: 1px solid var(--altin-sarisi);
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  transition: 0.3s;
-                "
-              >
-                <div>
-                  <strong style="color: #fff; display: block"
-                    >{{ gorev.ogrenci.first_name }} {{ gorev.ogrenci.last_name
-                    }}</strong
-                  >
-                  <span style="color: #aaa; font-size: 0.8rem"
-                    >{{ gorev.get_tur_display }} Raporu</span
-                  >
-                </div>
-                <div
-                  style="
-                    background: var(--altin-sarisi);
-                    color: #000;
-                    padding: 5px 10px;
-                    border-radius: 20px;
-                    font-weight: bold;
-                    font-size: 0.8rem;
-                  "
-                >
-                  İNCELE ➔
-                </div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #fff; background: linear-gradient(45deg, #b8860b, #d4af37); padding: 10px; border-radius: 5px; margin-top: 0; text-shadow: 1px 1px 2px #000;">
+                    🔔 RAPOR BEKLEYEN ÖĞRENCİLER
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    {% for gorev in onay_bekleyenler %}
+                    <a href="{% url 'ogrenci_kontrol' gorev.id %}" style="text-decoration: none;">
+                        <div style="
+                            background: #2a2a2a; 
+                            padding: 15px; 
+                            border-radius: 8px; 
+                            border: 1px solid var(--altin-sarisi); 
+                            display: flex; 
+                            justify-content: space-between; 
+                            align-items: center; 
+                            gap: 15px; /* İsim ve buton arası boşluk */
+                            min-height: 80px;
+                        ">
+                            <div style="flex: 1; min-width: 0;"> <strong style="color: #fff; display: block; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    {{ gorev.ogrenci.first_name }} {{ gorev.ogrenci.last_name }}
+                                </strong>
+                                <span style="color: #aaa; font-size: 0.85rem; display: block; margin-top: 3px;">
+                                    📝 {{ gorev.get_tur_display }} Raporu
+                                </span>
+                                <span style="color: var(--altin-sarisi); font-size: 0.8rem; display: block; margin-top: 3px;">
+                                    📅 {{ gorev.tarih|date:"d M Y" }}
+                                </span>
+                            </div>
 
+                            <div style="
+                                background: var(--altin-sarisi); 
+                                color: #000; 
+                                padding: 8px 15px; 
+                                border-radius: 20px; 
+                                font-weight: bold; 
+                                font-size: 0.8rem; 
+                                white-space: nowrap; 
+                                flex-shrink: 0; /* Butonun sıkışmasını engeller */
+                            ">
+                                İNCELE ➔
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            ```
         <h2
           style="
             color: #fff;

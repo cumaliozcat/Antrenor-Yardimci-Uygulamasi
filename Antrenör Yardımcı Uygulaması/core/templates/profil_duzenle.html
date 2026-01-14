@@ -3,52 +3,90 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Profili Düzenle</title>
+    <title>Profil Düzenle</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        body { text-align: center; padding-top: 50px; }
-        .form-container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 40px;
-            text-align: left;
-        }
-        .form-input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            background: #333;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        label { color: var(--altin-sarisi); display: block; margin-bottom: 5px; }
+        body { background-color: var(--ana-siyah); color: #fff; max-width: 800px; margin: 30px auto; padding: 20px; }
+        .form-section { background: #222; padding: 25px; border-radius: 10px; border: 1px solid #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--altin-sarisi); }
+        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box; }
+        input:focus { border-color: var(--altin-sarisi); outline: none; }
+        .btn-save { width: 100%; background: var(--altin-sarisi); color: #000; padding: 12px; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+        .btn-danger { background: #ff4d4d; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        ul.errorlist { color: #ff4d4d; list-style: none; padding: 0; font-size: 0.9rem; }
+        .helptext { font-size: 0.8rem; color: #aaa; display: block; margin-top: 3px; }
     </style>
 </head>
 <body>
 
-    <div class="card form-container">
-        <h2 style="color: var(--altin-sarisi); text-align: center; margin-bottom: 30px;">PROFİL BİLGİLERİN</h2>
-        
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>👤 PROFİL AYARLARI</h1>
+        <a href="{% url 'ogrenci_paneli' %}" style="color: #fff; text-decoration: none; border: 1px solid #fff; padding: 5px 15px; border-radius: 5px;">⬅ PANELE DÖN</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div style="background: #333; color: var(--altin-sarisi); padding: 15px; margin-bottom: 20px; border-radius: 5px; border: 1px solid var(--altin-sarisi);">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-section">
+        <h3 style="border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0;">📝 Kişisel Bilgiler</h3>
         <form method="POST">
             {% csrf_token %}
             
-            <label>Boy (cm):</label>
-            {{ form.boy }}
-            
-            <label>Kilo (kg):</label>
-            {{ form.kilo }}
+            {% for field in user_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
 
-            <button type="submit" class="btn-gold" style="width: 100%; margin-top: 20px; cursor: pointer;">
-                KAYDET VE DÖN
-            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                {% for field in profil_form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" name="bilgi_guncelle" class="btn-save">BİLGİLERİ GÜNCELLE</button>
         </form>
-
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="{% url 'ogrenci_paneli' %}" style="color: #888; text-decoration: none;">İptal Et</a>
-        </div>
     </div>
+
+    <div class="form-section" style="border-color: #555;">
+        <h3 style="border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; color: #aaa;">🔒 Şifre Değiştir</h3>
+        <form method="POST">
+            {% csrf_token %}
+            {% for field in password_form %}
+                <div class="form-group">
+                    <label style="color: #ccc;">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <span class="helptext" style="font-size: 0.75rem;">{{ field.help_text }}</span>
+                    {% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button type="submit" name="sifre_degistir" class="btn-save" style="background: #444; color: #fff;">ŞİFREYİ DEĞİŞTİR</button>
+        </form>
+    </div>
+
+    {% if user.profil.antrenor %}
+    <div style="margin-top: 30px; text-align: center;">
+        <form action="{% url 'takimdan_ayril' %}" method="POST" onsubmit="return confirm('Emin misin?');">
+            {% csrf_token %}
+            <button type="submit" style="background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 10px 20px; cursor: pointer; border-radius: 5px;">Takımdan Ayrıl</button>
+        </form>
+    </div>
+    {% endif %}
 
 </body>
 </html>

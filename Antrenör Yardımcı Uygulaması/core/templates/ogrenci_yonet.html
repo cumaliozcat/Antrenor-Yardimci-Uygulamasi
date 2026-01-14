@@ -258,6 +258,18 @@
       </div>
     </form>
 
+    <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 15px; text-align: right;">
+        <form action="{% url 'ogrenci_sil' ogrenci.id %}" method="POST" onsubmit="return confirm('Bu öğrenciyi takımdan çıkarmak istediğine emin misin?');" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" style="background: transparent; border: 1px solid #cc3333; color: #cc3333; padding: 8px 15px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; font-weight: bold; opacity: 0.7; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                🗑️ Takımdan Çıkar
+            </button>
+        </form>
+    </div>
+
+</div> </body>
+</html>
+
     <script>
       // Seçim kutusunu aç/kapa
       function toggleSelector() {
