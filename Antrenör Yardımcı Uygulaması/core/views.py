@@ -496,7 +496,7 @@ def yapay_zeka_sor(request):
             soru = data.get('mesaj', '')
             
             # API ANAHTARIN
-            GOOGLE_API_KEY = "BURAYA_KOPYALADIGINIZ_UZUN_ANAHTARI_YAPISTIRIN"
+            GOOGLE_API_KEY = "AIzaSyA1Dg6RBSh1-2_JESOlLmZ0NSGNY8iR-Uw"
             
             genai.configure(api_key=GOOGLE_API_KEY)
             

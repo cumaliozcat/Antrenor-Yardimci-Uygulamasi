@@ -30,7 +30,7 @@ class AntrenorProfil(models.Model):
 class Profil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil', verbose_name="Kullanıcı")
     
-    # Burada AntrenorProfil kullanıyoruz, o yüzden AntrenorProfil yukarıda olmalıydı.
+    
     antrenor = models.ForeignKey(AntrenorProfil, on_delete=models.SET_NULL, null=True, blank=True, related_name='ogrenciler', verbose_name="Antrenörü")
     
     boy = models.IntegerField(help_text="Santimetre (Örn: 180)", verbose_name="Boy (cm)")
