@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Akıllı Antrenör | Sonuç</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body { background-color: var(--ana-siyah, #111); color: #fff; margin: 0; font-family: sans-serif;}
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; text-align: center; }
+        .card { background: #222; padding: 20px; margin-bottom: 20px; border-radius: 10px; border: 1px solid #333; text-align: left; }
+        .header-btns { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+        .btn-outline { border: 1px solid var(--altin-sarisi, #f1c40f); color: var(--altin-sarisi, #f1c40f); padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: 0.3s;}
+        .btn-outline:hover { background-color: var(--altin-sarisi, #f1c40f); color: #000; }
+        
+        .check-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            background: #2a2a2a; padding: 20px; margin-bottom: 15px; 
+            border-radius: 8px; border: 1px solid #444; transition: 0.3s;
+            text-align: left;
+        }
+        .check-container:hover { border-color: var(--altin-sarisi, #f1c40f); }
+        .big-checkbox { transform: scale(1.5); cursor: pointer; accent-color: var(--altin-sarisi, #f1c40f); }
+        .btn-gold { background: var(--altin-sarisi, #f1c40f); color: #000; border: none; padding: 15px; font-size: 1.2rem; cursor: pointer; font-weight: bold; border-radius: 8px; transition: 0.3s; }
+        .btn-gold:hover { opacity: 0.9; transform: scale(0.99); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-btns">
+            <a href="{% url 'akilli_program' %}" class="btn-outline">🔄 YENİDEN OLUŞTUR</a>
+            <a href="{% url 'ogrenci_paneli' %}" class="btn-outline">🔙 PANELE DÖN</a>
+        </div>
+
+        <h1 style="color: var(--altin-sarisi, #f1c40f); margin-bottom: 10px;">🎉 PROGRAMINIZ HAZIR!</h1>
+        <p style="color: #aaa; margin-bottom: 30px; font-size: 1.1rem;">Yapay zeka analizine göre sizin için seçilen <strong>{{ kategori_adi }}</strong> egzersizleri:</p>
+
+        <div class="card">
+            <!-- İŞTE EKSİK OLAN IF ETİKETİ BURADA -->
+            {% if egzersiz_listesi %}
+                
+                <form action="{% url 'ai_program_kaydet' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="kategori" value="{{ kategori_adi }}">
+                    
+                    <p style="color: var(--altin-sarisi, #f1c40f); font-size: 0.9rem; margin-bottom: 15px;">
+                        👉 <i>Programa eklemek istediğiniz egzersizleri seçin:</i>
+                    </p>
+
+                    {% for egzersiz in egzersiz_listesi %}
+                        <div class="check-container" style="justify-content: flex-start; gap: 15px;">
+                            <input type="checkbox" name="secilen_egzersizler" value="{{ egzersiz.Egzersiz_Adi }}" class="big-checkbox" checked>
+                            
+                            <div>
+                                <strong style="font-size: 1.2rem; color: var(--altin-sarisi, #f1c40f);">🏋️‍♂️ {{ egzersiz.Egzersiz_Adi }}</strong>
+                                <div style="color: #ccc; margin-top: 5px; font-size: 0.95rem;">
+                                    <strong>Ekipman:</strong> <span style="color: #fff;">{{ egzersiz.Ekipman }}</span>
+                                </div>
+                                <div style="color: #999; margin-top: 5px; font-size: 0.85rem; line-height: 1.4;">
+                                    {{ egzersiz.Aciklama }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
+    <a href="{% url 'akilli_program_tamamla' %}" class="btn-outline">
+        Antrenmanı Tamamla
+    </a>
+</div>
+                </form>
+                
+            {% else %}
+                <div style="text-align: center; color: #ff4d4d; padding: 40px; border: 1px dashed #444; border-radius: 10px;">
+                    <h2>❌ Eşleşme Bulunamadı</h2>
+                    <p>Seçtiğiniz kriterlere uygun egzersiz bulunamadı. Lütfen formu farklı değerlerle tekrar doldurun.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,3 +1,11 @@
+import os
+import json
+import pandas as pd
+import joblib
+import google.generativeai as genai
+import datetime
+from datetime import date
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -6,20 +14,83 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
-import google.generativeai as genai
-import datetime
+from core.rag_service import bota_sor
 
-# MODELLER
+# Modellerin (Tek satırda toplandı)
 from .models import Gorev, Profil, AntrenorProfil, Davet, Egzersiz, AntrenmanHareket, Mesaj
 
-# FORMLAR (DÜZELTİLDİ: Artık ProfilForm yok, yenileri var)
-from .forms import (
-    EgzersizForm,
-    KullaniciGuncellemeForm, 
-    OgrenciProfilForm, 
-    AntrenorProfilForm
-)
+# Formların (HATAYI ÇÖZEN SATIR EKLENDİ 👇)
+from .forms import *
+
+
+def akilli_program_olustur(request):
+    if request.method == 'POST':
+        hedef = request.POST.get('hedef')
+        seviye = request.POST.get('seviye')
+        sakatlik = request.POST.get('sakatlik')
+
+        # 1. Dosya Yollarını Dinamik Olarak Bulma
+        app_klasoru = os.path.dirname(os.path.abspath(__file__))
+        ai_klasoru = os.path.join(app_klasoru, 'ai_modelleri')
+
+        # 2. Modelleri ve Dönüştürücüleri Yükleme
+        model = joblib.load(os.path.join(ai_klasoru, 'antrenor_yapay_zeka.pkl'))
+        le_hedef = joblib.load(os.path.join(ai_klasoru, 'le_hedef.pkl'))
+        le_seviye = joblib.load(os.path.join(ai_klasoru, 'le_seviye.pkl'))
+        le_sakatlik = joblib.load(os.path.join(ai_klasoru, 'le_sakatlik.pkl'))
+
+        # 3. Metinleri sayılara çevirme
+        hedef_encoded = le_hedef.transform([hedef])[0]
+        seviye_encoded = le_seviye.transform([seviye])[0]
+        sakatlik_encoded = le_sakatlik.transform([sakatlik])[0]
+
+        # 4. Yapay Zeka Tahmini 
+        tahmin_edilen_kategori = model.predict([[hedef_encoded, seviye_encoded, sakatlik_encoded]])[0]
+
+        # 5. CSV Veritabanından Egzersizleri Çekme
+        csv_yolu = os.path.join(ai_klasoru, 'egzersiz_veriseti.csv')
+        df = pd.read_csv(csv_yolu)
+        
+        # Formdan gelen seçili kas gruplarını al (Örn: ['Legs', 'Arms', 'Chest'])
+        secilen_kas_gruplari = request.POST.getlist('kas_grubu')
+
+        if secilen_kas_gruplari:
+            # 1. DURUM: ÖĞRENCİ BÖRDEN FAZLA BÖLGE SEÇTİ
+            aranan_kaslar = [kas.lower().strip() for kas in secilen_kas_gruplari]
+            filtrelenmis_df = df[df['Kategori'].str.lower().str.strip().isin(aranan_kaslar)]
+            
+            # EŞİT DAĞILIM ALGORİTMASI: Her seçili kas grubundan 3'er tane rastgele egzersiz al
+            uygun_egzersizler_df = filtrelenmis_df.groupby('Kategori', group_keys=False).apply(lambda x: x.sample(min(len(x), 6)))
+            
+            gosterilecek_baslik = ", ".join(secilen_kas_gruplari) + " Programı"
+            
+        else:
+            # 2. DURUM: ÖĞRENCİ BÖLGE SEÇMEDİ (Kontrol Yapay Zekada)
+            uygun_egzersizler_df = df[df['Kategori'] == tahmin_edilen_kategori]
+            gosterilecek_baslik = tahmin_edilen_kategori
+            
+            # Sadece tek bir bölge olduğu için o bölgenin içinden 6 tane rastgele seç
+            
+
+
+        # Pandas DataFrame'i HTML'in okuyabileceği bir sözlük listesine çeviriyoruz
+        egzersiz_listesi = uygun_egzersizler_df.to_dict('records')
+        # Egzersiz isimlerini hafızaya (session) alıyoruz ki tamamlama fonksiyonu görebilsin
+        hareket_isimleri = uygun_egzersizler_df['Egzersiz_Adi'].tolist()
+        request.session['ai_hareket_hafizasi'] = hareket_isimleri
+
+        # 6. Sonuçları HTML sayfasına göndermek üzere paketleme
+        context = {
+            'hedef': hedef,
+            'seviye': seviye,
+            'kategori_adi': gosterilecek_baslik,
+            'egzersiz_listesi': egzersiz_listesi
+        }
+        
+        return render(request, 'program_sonuc.html', context)
+
+    # GET İSTEĞİ: Boş formu göster
+    return render(request, 'program_form.html')
 
 # --- 1. GİRİŞ YAPMA ---
 def giris_yap(request):
@@ -129,6 +200,8 @@ def ogrenci_paneli(request):
             o_gunku_gorevler = Gorev.objects.filter(ogrenci=aktif_kullanici, tarih=bugun).exclude(durum='TAMAMLANDI')
             
             antrenman_gorevi = o_gunku_gorevler.filter(tur='ANTREMAN').first()
+            akilli_antrenor_mu = False # Mesajı ayarlamak için bir kontrol değişkeni
+            
             if antrenman_gorevi:
                 secilen_hareketler = request.POST.getlist('hareket_id[]')
                 
@@ -143,7 +216,13 @@ def ogrenci_paneli(request):
                     h.yapildi_mi = True
                     h.save()
                 
-                antrenman_gorevi.durum = 'ONAY_BEKLIYOR'
+                # --- İŞTE SİHİRLİ DOKUNUŞ BURASI ---
+                if "Akıllı" in antrenman_gorevi.baslik:
+                    antrenman_gorevi.durum = 'TAMAMLANDI' # Antrenörü es geç
+                    akilli_antrenor_mu = True
+                else:
+                    antrenman_gorevi.durum = 'ONAY_BEKLIYOR' # Gerçek antrenöre gönder
+                    
                 antrenman_gorevi.save()
 
             beslenme_gorevi = o_gunku_gorevler.filter(tur='BESLENME').first()
@@ -153,7 +232,12 @@ def ogrenci_paneli(request):
                 beslenme_gorevi.durum = 'ONAY_BEKLIYOR'
                 beslenme_gorevi.save()
 
-            messages.success(request, "Raporun antrenörüne gönderildi, onay bekleniyor.")
+            # Duruma göre doğru mesajı gösterelim
+            if akilli_antrenor_mu:
+                messages.success(request, "Akıllı Antrenör programın başarıyla tamamlandı! Harika iş çıkardın. 🎉")
+            else:
+                messages.success(request, "Raporun antrenörüne gönderildi, onay bekleniyor.")
+                
             return redirect('ogrenci_paneli')
 
     # -- B) GÖRÜNTÜLEME VERİLERİ --
@@ -384,12 +468,22 @@ def ogrenci_kontrol(request, gorev_id):
     if baz_gorev.ogrenci.profil.antrenor != request.user.antrenor_profili:
         return redirect('antrenor_paneli')
 
+    # --- SİHİRLİ DOKUNUŞ BURADA ---
+    # .order_by('-id') diyerek aynı gün içinde oluşturulmuş görevlerden EN YENİ olanı (son yazdığını) seçmesini garantiliyoruz.
     o_gunku_gorevler = Gorev.objects.filter(
         ogrenci=baz_gorev.ogrenci, 
         tarih=baz_gorev.tarih
-    )
+    ).order_by('-id')
     
-    antrenman_gorevi = o_gunku_gorevler.filter(tur='ANTREMAN').first()
+    antrenman_gorevi = None
+    for g in o_gunku_gorevler.filter(tur='ANTREMAN'):
+        if g.hareketler.exists(): # İçinde egzersiz olan en güncel görev
+            antrenman_gorevi = g
+            break
+            
+    if not antrenman_gorevi:
+        antrenman_gorevi = o_gunku_gorevler.filter(tur='ANTREMAN').first()
+
     beslenme_gorevi = o_gunku_gorevler.filter(tur='BESLENME').first()
 
     if request.method == 'POST':
@@ -489,38 +583,30 @@ def sohbet_odasi(request, user_id):
 
 # --- 11. YAPAY ZEKA ASİSTANI (CHATBOT) ---
 @csrf_exempt
-def yapay_zeka_sor(request):
+def chatbot_view(request):
+    # Sistem sadece POST (JavaScript'ten gelen arka plan isteği) kabul edecek
     if request.method == 'POST':
         try:
+            # JavaScript'in gönderdiği JSON paketini aç
             data = json.loads(request.body)
-            soru = data.get('mesaj', '')
+            kullanici_sorusu = data.get('mesaj', '')
             
-            # API ANAHTARIN
-            GOOGLE_API_KEY = "AIzaSyA1Dg6RBSh1-2_JESOlLmZ0NSGNY8iR-Uw"
-            
-            genai.configure(api_key=GOOGLE_API_KEY)
-            
-            # GÜNCEL MODEL
-            model = genai.GenerativeModel('gemini-flash-latest')
-            
-            prompt = f"""
-            Sen Fitness Pro uygulamasının yardımcı yapay zeka asistanısın.
-            Adın "FitBot".
-            Sadece fitness, vücut geliştirme, beslenme, diyet ve sağlık konularında sorulara cevap ver.
-            Kısa, öz ve motive edici cevaplar ver.
-            Eğer konu spor dışındaysa (siyaset, tarih vb.) nazikçe cevap veremeyeceğini söyle.
-            
-            Kullanıcı Sorusu: {soru}
-            """
-            
-            response = model.generate_content(prompt)
-            return JsonResponse({'cevap': response.text, 'durum': 'basarili'})
-            
+            if kullanici_sorusu:
+                # Soruyu RAG modelimize (Gemini + FAISS) gönder
+                bot_cevabi = bota_sor(kullanici_sorusu)
+                
+                # Gelen cevabı tekrar JSON formatında arayüze fırlat
+                return JsonResponse({'cevap': bot_cevabi})
+            else:
+                return JsonResponse({'error': 'Boş mesaj gönderilemez.'}, status=400)
+                
         except Exception as e:
-            print("HATA:", e)
-            return JsonResponse({'cevap': 'Bağlantı sorunu oluştu. Lütfen tekrar dene.', 'durum': 'hata'})
+            # Beklenmedik bir hata olursa konsola çökme, hatayı JavaScript'e ilet
+            return JsonResponse({'error': f"Yapay zeka servisinde hata: {str(e)}"}, status=500)
             
-    return JsonResponse({'error': 'Sadece POST isteği kabul edilir'}, status=400)
+    # Eğer birisi tarayıcıya "site.com/chatbot/" yazıp doğrudan girmeye çalışırsa 
+    # ona sayfa göstermek yerine uyarı veriyoruz (Çünkü arayüz zaten öğrenci panelinde)
+    return JsonResponse({'error': 'Bu sayfaya doğrudan erişim izni yoktur.'}, status=405)
 
 
 # --- 12. TAKIM YÖNETİMİ (SİLME VE AYRILMA) ---
@@ -589,3 +675,97 @@ def antrenor_profil_duzenle(request):
         'profil_form': profil_form,
         'password_form': password_form
     })
+
+def ai_program_kaydet(request):
+    if request.method == 'POST':
+        kategori = request.POST.get('kategori', 'Genel')
+        # Sadece checkbox ile işaretlenmiş egzersizleri alıyoruz!
+        secilen_egzersizler = request.POST.getlist('secilen_egzersizler')
+        
+        # Eğer öğrenci hiçbir şey seçmeden kaydet derse uyar ve geri gönder
+        if not secilen_egzersizler:
+            messages.error(request, "Lütfen programa eklemek için en az bir egzersiz seçin!")
+            return redirect('akilli_program')
+
+        # --- AI KOÇ SİSTEMİNİ YARATALIM ---
+        # Veritabanında "ai_koc" adında gizli bir sistem kullanıcısı var mı bak, yoksa yarat
+        ai_user, created = User.objects.get_or_create(
+            username='ai_koc', 
+            defaults={'first_name': '🤖 Akıllı', 'last_name': 'Antrenör'}
+        )
+        
+        # Bu sistem kullanıcısını bir Antrenöre dönüştür
+        ai_profil, created = AntrenorProfil.objects.get_or_create(
+            user=ai_user, 
+            defaults={'yas': 99, 'uzmanlik_alani': 'FITNESS'}
+        )
+
+        # 1. Ana Görevi (Antrenmanı) Oluştur
+        yeni_gorev = Gorev.objects.create(
+            ogrenci=request.user,
+            baslik=f"🤖 AI Koç: {kategori} Programı",
+            aciklama="Akıllı Antrenör tarafından sizin seçimleriniz doğrultusunda özel olarak oluşturuldu.",
+            tur='ANTREMAN',
+            durum='ATANDI'
+        )
+        
+        # 2. Seçilen Egzersizleri AI Koç Kütüphanesine ve Göreve Ekle
+        for ad in secilen_egzersizler:
+            # Önce bu egzersizi AI Koç oluşturmuş mu diye bakıyoruz
+            egzersiz_db = Egzersiz.objects.filter(isim=ad, olusturan=ai_profil).first()
+            
+            # Yoksa, sadece AI Koç'un üstüne kaydet (Diğer antrenörleri etkilemez)
+            if not egzersiz_db:
+                egzersiz_db = Egzersiz.objects.create(
+                    olusturan=ai_profil,
+                    isim=ad,
+                    aciklama="Yapay Zeka kütüphanesinden otomatik eklendi."
+                )
+            
+            # Egzersizi görevin içine ekle
+            AntrenmanHareket.objects.create(
+                gorev=yeni_gorev,
+                egzersiz=egzersiz_db,
+                set_sayisi="3",      
+                tekrar_sayisi="12"   
+            )
+                
+        messages.success(request, "🤖 AI Koç programınız başarıyla oluşturuldu ve görevlerinize eklendi!")
+        return redirect('ogrenci_paneli')
+        
+    return redirect('akilli_program')
+        
+
+
+def akilli_program_tamamla(request):
+    if request.method == 'GET':
+        
+        # 1. Hafızaya aldığımız hareketleri geri çağırıyoruz
+        # Eğer hafızada bir şey yoksa boş liste döner
+        secilen_hareketler = request.session.get('ai_hareket_hafizasi', [])
+        
+        # 2. Hareketleri aralarına virgül koyarak şık bir metin haline getiriyoruz
+        hareket_metni = ", ".join(secilen_hareketler)
+        
+        # 3. Yeni açıklama metnimizi oluşturuyoruz
+        yeni_aciklama = f"Seçilen Hareketler: {hareket_metni}"
+        
+        # Görevi oluşturuyoruz
+        Gorev.objects.create(
+            ogrenci=request.user, 
+            baslik="Akıllı Antrenör Programı",
+            aciklama=yeni_aciklama,  # Artık sabit yazı yerine hareketler görünecek!
+            durum='BEKLIYOR',
+            tarih=date.today(),
+            tur='ANTREMAN'
+        )
+        
+        # Hafızayı temizliyoruz (sıradaki programlar için)
+        if 'ai_hareket_hafizasi' in request.session:
+            del request.session['ai_hareket_hafizasi']
+            
+        messages.success(request, "Yapay zeka programı ana sayfadaki görevlerine eklendi! Günü bitir dediğinde antrenör onayı olmadan direkt tamamlanacak. 🎉")
+        
+        return redirect('ogrenci_paneli')
+    
+    

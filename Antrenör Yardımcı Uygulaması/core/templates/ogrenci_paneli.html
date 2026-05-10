@@ -46,7 +46,7 @@
                 {% endif %}
             </a>
             {% endif %}
-
+            <a href="{% url 'akilli_program' %}" class="btn-outline">🤖 AKILLI ANTRENÖR</a>
             <a href="{% url 'profil_duzenle' %}" class="btn-outline">👤 PROFİLİM</a>
             <a href="{% url 'cikis_yap' %}" class="btn-logout">ÇIKIŞ YAP ➔</a>
         </div>
@@ -167,6 +167,7 @@
         </div>
 
         <div style="padding: 10px; background: #222; display: flex; gap: 5px; border-top: 1px solid #333;">
+            {% csrf_token %}
             <input type="text" id="user-input" placeholder="Bir soru sor..." onkeypress="handleEnter(event)" 
                    style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #444; background: #111; color: #fff; outline: none;">
             <button onclick="sendMessage()" style="background: var(--altin-sarisi); border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-weight: bold;">➤</button>
@@ -174,6 +175,22 @@
     </div>
 
     <script>
+        // 1. Django'nun CSRF Token'ını çeken güvenlik fonksiyonu
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         function toggleChat() {
             var chatWindow = document.getElementById("chat-window");
             if (chatWindow.style.display === "none") {
@@ -211,37 +228,38 @@
             loadingBubble.innerText = "FitBot düşünüyor...";
             messageArea.appendChild(loadingBubble);
 
-            // Backend'e Gönder (AJAX)
-            fetch('/api/chatbot/', {
+            // 2. Fetch İstediğini Gönder (Güvenlik başlıklarıyla birlikte)
+            const csrftoken = getCookie('csrftoken');
+
+            fetch('/chatbot/', { // NOT: urls.py içindeki yola göre burayı '/chatbot/' olarak güncelledim
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken // Şifreyi sunucuya gönderiyoruz
                 },
                 body: JSON.stringify({ mesaj: message })
             })
             .then(response => response.json())
             .then(data => {
-                // Loading'i kaldır
                 document.getElementById("loading-bubble").remove();
 
-                // Yapay Zeka Cevabını Ekle
                 var aiBubble = document.createElement("div");
                 aiBubble.style = "align-self: flex-start; background: #333; color: #fff; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; font-size: 0.9rem; margin-bottom: 5px; line-height: 1.4;";
                 
-                // Basit Markdown temizliği (Yıldızları kalın yap)
-                var cleanText = data.cevap.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
-                aiBubble.innerHTML = cleanText;
+                // Yapay zeka çıktısındaki alt satıra geçmeleri <br> etiketine çevir
+                var formattedText = data.cevap.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                aiBubble.innerHTML = formattedText;
                 
                 messageArea.appendChild(aiBubble);
                 messageArea.scrollTop = messageArea.scrollHeight;
             })
             .catch(error => {
                 document.getElementById("loading-bubble").remove();
-                alert("Bir hata oluştu.");
+                alert("Sunucuya bağlanırken bir hata oluştu.");
+                console.error(error);
             });
         }
     </script>
-    ```
 
 
 </body>

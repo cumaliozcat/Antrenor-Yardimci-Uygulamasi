@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Akıllı Antrenör | Form</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* Senin temanın temel yapıları */
+        body { background-color: var(--ana-siyah, #111); color: #fff; margin: 0; font-family: sans-serif;}
+        .container { max-width: 800px; margin: 30px auto; padding: 20px; text-align: center; }
+        .card { background: #222; padding: 30px; margin-bottom: 20px; border-radius: 10px; border: 1px solid #333; text-align: left; }
+        .header-btns { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+        .btn-outline { border: 1px solid var(--altin-sarisi, #f1c40f); color: var(--altin-sarisi, #f1c40f); padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        .btn-outline:hover { background-color: var(--altin-sarisi, #f1c40f); color: #000; }
+        
+        /* Form Özel Stilleri (Karanlık Temaya Uygun) */
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; color: var(--altin-sarisi, #f1c40f); margin-bottom: 8px; font-weight: bold; font-size: 1.1rem; }
+        select { width: 100%; padding: 12px; background: #1a1a1a; color: #fff; border: 1px solid #444; border-radius: 8px; outline: none; font-size: 1rem; appearance: none; }
+        select:focus { border-color: var(--altin-sarisi, #f1c40f); }
+        .btn-gold { background: var(--altin-sarisi, #f1c40f); color: #000; border: none; padding: 15px; font-size: 1.2rem; cursor: pointer; font-weight: bold; border-radius: 8px; width: 100%; transition: 0.3s; margin-top: 10px; }
+        .btn-gold:hover { opacity: 0.9; transform: scale(0.99); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Geri Dönüş Butonu -->
+        <div class="header-btns">
+            <!-- İstersen buraya antrenor_paneli linki de koyabilirsin -->
+            <a href="{% url 'ogrenci_paneli' %}" class="btn-outline">🔙 PANELE DÖN</a>
+        </div>
+
+        <h1 style="color: var(--altin-sarisi, #f1c40f); margin-bottom: 30px;">🤖 AKILLI ANTRENÖR</h1>
+        
+        <div class="card">
+            <p style="color: #aaa; margin-top: 0; margin-bottom: 30px; font-size: 1.1rem; text-align: center;">Yapay zeka sizin için en uygun antrenmanı saniyeler içinde analiz etsin.</p>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="hedef">🎯 Hedefiniz Nedir?</label>
+                    <select name="hedef" id="hedef" required>
+                        <option value="Kilo_Verme">Kilo Verme</option>
+                        <option value="Kas_Gelistirme">Kas Geliştirme</option>
+                        <option value="Güc_Artisi">Güç Artışı</option>
+                        <option value="Sikilasma">Sıkılaşma</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="seviye">⚡ Seviyeniz Nedir?</label>
+                    <select name="seviye" id="seviye" required>
+                        <option value="Baslangic">Başlangıç</option>
+                        <option value="Orta">Orta Seviye</option>
+                        <option value="Ileri">İleri Seviye</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="sakatlik">🏥 Sakatlık Durumu Var mı?</label>
+                    <select name="sakatlik" id="sakatlik" required>
+                        <option value="Yok">Yok</option>
+                        <option value="Bel">Bel Sakatlığı</option>
+                        <option value="Diz">Diz Sakatlığı</option>
+                        <option value="Omuz">Omuz Sakatlığı</option>
+                    </select>
+                </div>
+<div class="form-group">
+                    <label>💪 Çalıştırılacak Bölgeler (Birden fazla seçebilirsiniz)</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #444;">
+                        
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" name="kas_grubu" value="Chest" class="big-checkbox" style="transform: scale(1.2);"> Göğüs
+                        </label>
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" name="kas_grubu" value="Back" class="big-checkbox" style="transform: scale(1.2);"> Sırt
+                        </label>
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" name="kas_grubu" value="Shoulders" class="big-checkbox" style="transform: scale(1.2);"> Omuz
+                        </label>
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" name="kas_grubu" value="Legs" class="big-checkbox" style="transform: scale(1.2);"> Bacak
+                        </label>
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" name="kas_grubu" value="Arms" class="big-checkbox" style="transform: scale(1.2);"> Kol
+                        </label>
+                        <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <!-- Karın bölgesi CSV'de genelde Core veya Abs diye geçer, en yaygını Core'dur -->
+                            <input type="checkbox" name="kas_grubu" value="Core" class="big-checkbox" style="transform: scale(1.2);"> Karın 
+                        </label>
+
+                    </div>
+                    <small style="color: #888; display: block; margin-top: 5px;">* Hiçbirini seçmezseniz tüm vücut (Full Body) programı üretilir.</small>
+                </div>                
+                <button type="submit" class="btn-gold">
+                    ✨ PROGRAMIMI OLUŞTUR
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
